@@ -16,20 +16,9 @@ const pirogue = {
     if (this.imgs[this.imgIndex]) {
       image(this.imgs[this.imgIndex], this.x, this.y);
     }
-    // fill(255);
-    // noStroke();
-    // textSize(24);
-    // text(this.imgIndex, this.x + 10, this.y + 30);
   },
 
   update: function () {
-    // wrap around screen
-    // if (this.x < 0) {
-    //   this.x = width;
-    // } else if (this.x > width * 2) {
-    //   this.x = -500;
-    // }
-
     const now = millis();
 
     // if currently paused, check if pause is over
@@ -39,15 +28,6 @@ const pirogue = {
       }
       return; // don’t animate while paused
     }
-
-    // chance to start a pause
-    // if (random() < 0.0005) {
-    //   // 0.5% per frame, not 50%
-    //   this.isPaused = true;
-    //   this.pauseTime = random(1000); // 1–3 seconds
-    //   this.lastPauseTime = now;
-    //   return;
-    // }
 
     // normal animation
     if (frameCount % 20 === 0) {

@@ -11,10 +11,6 @@ const bird = {
     if (this.imgs[this.imgIndex]) {
       image(this.imgs[this.imgIndex], this.x, this.y);
     }
-    // fill(255);
-    // noStroke();
-    // textSize(24);
-    // text(this.imgIndex, this.x + 10, this.y + 30);
   },
 
   displayBackward: function () {
@@ -25,10 +21,6 @@ const bird = {
       image(this.imgs[this.imgIndex], 0, 0);
     }
     pop();
-    // fill(255);
-    // noStroke();
-    // textSize(24);
-    // text(this.imgIndex, this.x + 10, this.y + 30);
   },
 
   update: function () {
@@ -48,15 +40,6 @@ const bird = {
       }
       return; // don’t animate while paused
     }
-
-    // chance to start a pause
-    // if (random() < 0.0005) {
-    //   // 0.5% per frame, not 50%
-    //   this.isPaused = true;
-    //   this.pauseTime = random(1000); // 1–3 seconds
-    //   this.lastPauseTime = now;
-    //   return;
-    // }
 
     // normal animation
     if (frameCount % 8 === 0) {

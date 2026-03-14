@@ -26,17 +26,12 @@ const poseState = {
   handSpan: 0,
 };
 
-// let mossBushes = [];
 let xPosition = 0;
 let treeImg;
 let treeImg2;
-// let projectedText;
 let font;
-let rotateProjector = false;
 let stars = [];
 let pMapper;
-let textQuadMap;
-let textLayer;
 let moveForward = false;
 let shouldInvert = false;
 
@@ -48,8 +43,6 @@ function preload() {
   loadLotusImgs();
   treeImg = loadImage("./assets/tree.png");
   treeImg2 = loadImage("./assets/jotree.png");
-  // font = loadFont("../shared/assets/LESNOIR.ttf");
-  // font = loadFont("../shared/assets/Orleans City.otf");
   font = loadFont("./assets/PARISREBEL.ttf");
   for (let i = 1; i < 13; i++) {
     bird.imgs[i - 1] = loadImage("./assets/walk/" + i + ".png");

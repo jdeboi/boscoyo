@@ -8,28 +8,16 @@ const history1 = [
   "standing as big and magnificent as the redwoods.",
 ];
 
-//
 const history2 = [
   "By the 1920s, most of these ancient trees had been logged,",
   "leaving only scattered remnants and submerged stumps.",
-  // ];
-
-  // const history3 = [
-  //   "The landscape that remains is shaped as much by what was removed,",
-  //   "as by what still grows.",
-  //   "Today, the swamp continues to evolve,",
   "The memory of those original forests has largely been forgotten",
-  //   "Without a sense of the past scale and longevity of these ecosystems,",
-  //   "it becomes easy to misunderstand what the landscape once was",
   "making it difficult to fully grasp what the swamp once was,",
   "and what it could be.",
-  // "The surface beauty of the swamp endures, but its deeper story lives in absence, in the gaps left behind by trees that once anchored both the ecosystem and the region’s cultural memory.",
 ];
 
 const questions = [
   "What responsibility do we have to understand the losses we inherited?",
-  //   "Can we truly grasp an ecosystem without knowing what once defined it?",
-  // "How does a community's identity change when its roots are forgotten?",
   "What does it mean to care for a landscape we only partially remember?",
   "What futures become imaginable when our forgotten history resurfaces?",
 ];
@@ -86,15 +74,11 @@ const scenes = [
       bird.x = width - 500;
       bird.y = height / 2;
     },
-    // textCues: questions,
-    // textType: "question",
   },
   {
     id: "bigTreeQuestions2",
     durationSeconds: 8,
     draw: displayBigTreeQuestions2,
-    // textCues: questions,
-    // textType: "question",
   },
   {
     id: "bigTreeQuestions3",
@@ -104,8 +88,6 @@ const scenes = [
       bird.x = 0;
       bird.y = height - 180;
     },
-    // textCues: questions,
-    // textType: "question",
   },
   {
     id: "treesAndPirogue",
@@ -138,9 +120,6 @@ function displayTreeSpan(pg) {
   textFont("monospace");
   xPosition -= 0.5;
 
-  // pirogue.display();
-  // pirogue.update();
-
   for (const tree of trees) {
     tree.display(xPosition);
   }
@@ -154,7 +133,6 @@ function displayPirogue(pg) {
   scale(1.2);
   pirogue.display();
   pirogue.update();
-  // pirogue.move(1);
 
   for (const tree of trees) {
     tree.display(xPosition);
@@ -167,9 +145,6 @@ function displayPirogueBig(pg) {
   xPosition--;
   pirogue.y = 100;
 
-  // for (const tree of trees) {
-  //   tree.display(0);
-  // }
   push();
   scale(2);
   translate(0, -500);
@@ -191,10 +166,6 @@ function displayBirdBigTree1(pg) {
   scale(1.6);
   translate(0, -180);
   trees[2].display(-width * 0.9);
-  // push();
-  //  scale(2);
-  // trees[1].display(-width / 2);
-  // pop();
   pop();
 
   push();
@@ -228,10 +199,6 @@ function displayQuestion(question, pg) {
   pop();
 }
 
-function displayBigTreeQuestions0(pg) {
-  displayQuestion(questions[0], pg);
-}
-
 function displayBigTreeQuestions1(pg) {
   displayQuestion(questions[1], pg);
 }
@@ -242,18 +209,6 @@ function displayBigTreeQuestions2(pg) {
 
 function displayBigTreeQuestionsNo(pg) {
   displayQuestion("", pg);
-}
-
-function treesAndPirogue(pg) {
-  textFont("monospace");
-  xPosition--;
-
-  pirogue.display();
-  pirogue.update();
-
-  for (const tree of trees) {
-    tree.display(xPosition);
-  }
 }
 
 class SceneDirector {

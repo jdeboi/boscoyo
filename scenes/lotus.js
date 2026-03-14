@@ -13,14 +13,14 @@ const lotusPlantsBack = [];
 
 function loadLotusImgs() {
   for (let i = 0; i < 3; i++) {
-    lotusLeafImgs[i] = loadImage(`../assets/lotus/lotusleaf/${i}.png`);
-    budImgs[i] = loadImage(`../assets/lotus/buds/${i}.png`);
+    lotusLeafImgs[i] = loadImage(`./assets/lotus/lotusleaf/${i}.png`);
+    budImgs[i] = loadImage(`./assets/lotus/buds/${i}.png`);
   }
   for (let i = 0; i < 5; i++) {
-    lotusFlowerImgs[i] = loadImage(`../assets/lotus/lotusflower/${i}.png`);
+    lotusFlowerImgs[i] = loadImage(`./assets/lotus/lotusflower/${i}.png`);
   }
   for (let i = 0; i < 5; i++) {
-    lillyPadImgs[i] = loadImage(`../assets/lotus/lillypad/${i}.png`);
+    lillyPadImgs[i] = loadImage(`./assets/lotus/lillypad/${i}.png`);
   }
 }
 
@@ -62,9 +62,6 @@ function setupLotus() {
     { id: 1, index: 2, x: 50, y: 580, isFlipped: false, sc: 0.8 },
     { id: 2, index: 3, x: 850, y: 480, isFlipped: false, sc: 1 },
     { id: 3, index: 4, x: 400, y: 520, isFlipped: false, sc: 0.55 },
-
-    // { index: 3, x: 800, y: 600, isFlipped: false, sc: 1 },
-    // { index: 4, x: 500, y: 500, isFlipped: false, sc: 0.5 },
   ];
 
   const lillyPadsBack = [
@@ -75,7 +72,6 @@ function setupLotus() {
     { id: 4, index: 1, x: 550, y: 420, isFlipped: false, sc: 0.45 },
     { id: 5, index: 3, x: 700, y: 480, isFlipped: false, sc: 0.4 },
     { id: 6, index: 0, x: 750, y: 400, isFlipped: false, sc: 0.35 },
-    // { id: 7, index: 4, x: 850, y: 480, isFlipped: false, sc: 0.55 },
   ];
 
   const lotusLeaves = [
@@ -128,34 +124,13 @@ function setupLotus() {
     );
   }
 
-  //   lotusPlantsFront.push(
-  //     new FlowerWithBud(
-  //       lotusFlowerImgs[3],
-  //       budImgs,
-  //       100,
-  //       width / 2,
-  //       350,
-  //       1.2,
-  //       "flower",
-  //       false
-  //     )
-  //   );
 }
 
 function displayLotus() {
   push();
   scale(0.56);
-  //   trees[0].display(1600);
   trees[1].display(500);
   pop();
-  //   drawWaterBand(height * 0.54, xPosition, { hasOutline: false });
-
-  //   for (const plant of lotusPlantsBack) {
-  //     plant.display();
-  //     plant.update();
-  //   }
-
-  //   drawWaterBand(height * 0.73, xPosition, { hasOutline: false });
 
   for (const plant of lotusPlantsFront) {
     plant.display();
@@ -185,10 +160,6 @@ class Plant {
       translate(-this.img.width, 0);
     }
     image(this.img, 0, 0);
-    fill(255);
-    noStroke();
-    textSize(24);
-    text(this.id, 10, 20);
     pop();
   }
 
@@ -222,7 +193,6 @@ class Flower extends Plant {
     if (this.isFlipped) {
       scale(-1, 1);
       translate(-this.img.width, 0);
-    } else {
     }
 
     // move origin to pivot
@@ -253,11 +223,6 @@ class LillyPad extends Plant {
   }
 }
 
-class LotusLeaf extends Plant {
-  // update different - make them bob on a sine wave
-  update() {}
-}
-
 class FlowerWithBud extends Flower {
   constructor(img, budImgs, id, x, y, scale, type, isFlipped = false) {
     super(img, id, x, y, scale, type, isFlipped);
@@ -275,10 +240,6 @@ class FlowerWithBud extends Flower {
     }
     image(this.img, 0, 0);
     image(this.budImgs[this.budIndex], 0, 0);
-    fill(255);
-    noStroke();
-    textSize(24);
-    text(this.id, 10, 20);
     pop();
   }
 
