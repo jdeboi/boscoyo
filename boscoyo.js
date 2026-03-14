@@ -1,5 +1,4 @@
-let FilesetResolver = null;
-let PoseLandmarker = null;
+let poseWorker = null;
 
 let renderFrameCount = 0;
 let poseFrameCount = 0;
@@ -10,10 +9,10 @@ let lastRenderCount = 0;
 let lastPoseCount = 0;
 
 let videoEl;
-let poseLandmarker = null;
 let latestLandmarks = [];
 let lastVideoTime = -1;
 let poseReady = false;
+let poseDetecting = false;
 
 const poseState = {
   active: false,
@@ -34,6 +33,7 @@ let stars = [];
 let pMapper;
 let moveForward = false;
 let shouldInvert = false;
+let debugMode = true;
 
 let director;
 
@@ -66,8 +66,8 @@ async function setupCamera() {
 
   const stream = await navigator.mediaDevices.getUserMedia({
     video: {
-      width: { ideal: 640 },
-      height: { ideal: 480 },
+      width: { ideal: 320 },
+      height: { ideal: 240 },
       frameRate: { ideal: 30 },
     },
     audio: false,
@@ -85,43 +85,33 @@ async function setupCamera() {
   setStatus(`Camera ready: ${videoEl.videoWidth} x ${videoEl.videoHeight}`);
 }
 
-async function setupPose() {
+function setupPose() {
   setStatus("Loading pose model...");
+  return new Promise((resolve, reject) => {
+    poseWorker = new Worker("./js/poseWorker.js");
 
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm",
-  );
+    poseWorker.onmessage = (e) => {
+      if (e.data.type === "ready") {
+        poseReady = true;
+        console.log("Pose model loaded");
+        setStatus("Pose model loaded");
+        resolve();
+      } else if (e.data.type === "result") {
+        poseDetecting = false;
+        poseFrameCount++;
+        latestLandmarks = e.data.landmarks || [];
+        updatePoseState();
+      }
+    };
 
-  poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetPath:
-        "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
-    },
-    runningMode: "VIDEO",
-    numPoses: 1,
-    minPoseDetectionConfidence: 0.5,
-    minPosePresenceConfidence: 0.5,
-    minTrackingConfidence: 0.5,
+    poseWorker.onerror = (e) => {
+      reject(new Error(`Worker error: ${e.message}`));
+    };
   });
-
-  poseReady = true;
-  console.log("Pose model loaded");
-  setStatus("Pose model loaded");
 }
 
-async function loadMediaPipe() {
-  if (FilesetResolver && PoseLandmarker) return;
-
-  const mp =
-    await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14");
-
-  FilesetResolver = mp.FilesetResolver;
-  PoseLandmarker = mp.PoseLandmarker;
-}
 async function initPoseSystem() {
   try {
-    setStatus("Loading MediaPipe...");
-    await loadMediaPipe();
     await setupCamera();
     await setupPose();
     console.log("Pose system ready");
@@ -184,7 +174,7 @@ function draw() {
   director.update(deltaTime, this);
   director.draw(this);
 
-  debugPose();
+  if (debugMode) debugPose();
 
   pop();
   displayFrameRate();
@@ -230,27 +220,20 @@ function debugPose() {
     return;
   }
 
-  // draw a small camera preview so you know the feed is alive
-  drawingContext.drawImage(videoEl, 20, 220, 320, 240);
+  const landmarks = [
+    { pt: poseState.nose,        label: "nose",         col: [255, 80, 80] },
+    { pt: poseState.leftWrist,   label: "left wrist",   col: [80, 255, 80] },
+    { pt: poseState.rightWrist,  label: "right wrist",  col: [80, 180, 255] },
+    { pt: poseState.bodyCenter,  label: "body center",  col: [255, 255, 80] },
+  ];
 
-  if (poseState.nose) {
-    fill(255, 0, 0);
-    circle(poseState.nose.x, poseState.nose.y, 30);
-  }
-
-  if (poseState.leftWrist) {
-    fill(0, 255, 0);
-    circle(poseState.leftWrist.x, poseState.leftWrist.y, 30);
-  }
-
-  if (poseState.rightWrist) {
-    fill(0, 0, 255);
-    circle(poseState.rightWrist.x, poseState.rightWrist.y, 30);
-  }
-
-  if (poseState.bodyCenter) {
-    fill(255, 255, 0);
-    circle(poseState.bodyCenter.x, poseState.bodyCenter.y, 36);
+  for (const { pt, label, col } of landmarks) {
+    if (!pt) continue;
+    fill(...col);
+    noStroke();
+    circle(pt.x, pt.y, 24);
+    textSize(14);
+    text(label, pt.x + 16, pt.y + 5);
   }
 
   pop();
@@ -342,6 +325,9 @@ function keyPressed() {
     case "i":
       shouldInvert = !shouldInvert;
       break;
+    case "d":
+      debugMode = !debugMode;
+      break;
     case "c":
       pMapper.toggleCalibration();
       break;
@@ -393,18 +379,16 @@ function initTrees() {
   }
 }
 function updatePoseDetection() {
-  if (!poseLandmarker || !videoEl) return;
+  if (!poseWorker || !poseReady || !videoEl) return;
   if (videoEl.readyState < 2) return;
+  if (videoEl.currentTime === lastVideoTime) return;
+  if (poseDetecting) return;
 
-  if (videoEl.currentTime !== lastVideoTime) {
-    lastVideoTime = videoEl.currentTime;
-
-    poseFrameCount++;
-
-    const result = poseLandmarker.detectForVideo(videoEl, performance.now());
-    latestLandmarks = result.landmarks || [];
-    updatePoseState();
-  }
+  lastVideoTime = videoEl.currentTime;
+  poseDetecting = true;
+  createImageBitmap(videoEl).then((bitmap) => {
+    poseWorker.postMessage({ type: "detect", bitmap }, [bitmap]);
+  });
 }
 function mirrorLandmark(lm) {
   return {

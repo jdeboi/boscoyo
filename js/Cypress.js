@@ -42,13 +42,14 @@ class Cypress {
     // draw tree at original size so scale() does all the work
     image(this.img, 0, 0);
 
+    const updatePhysics = frameCount % 2 === 0;
     this.mossBushes.forEach((mossBush) => {
       push();
       translate(mossBush.localX, mossBush.localY);
       mossBush.display();
       pop();
 
-      mossBush.update(0.5);
+      if (updatePhysics) mossBush.update(0.5);
     });
 
     pop();
