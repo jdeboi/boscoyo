@@ -66,8 +66,8 @@ async function setupCamera() {
 
   const stream = await navigator.mediaDevices.getUserMedia({
     video: {
-      width: { ideal: 320 },
-      height: { ideal: 240 },
+      width: { ideal: 480 },
+      height: { ideal: 360 },
       frameRate: { ideal: 30 },
     },
     audio: false,
@@ -219,6 +219,8 @@ function debugPose() {
     pop();
     return;
   }
+
+  if (!poseState.active) { pop(); return; }
 
   const landmarks = [
     { pt: poseState.nose,        label: "nose",         col: [255, 80, 80] },
@@ -386,8 +388,9 @@ function updatePoseDetection() {
 
   lastVideoTime = videoEl.currentTime;
   poseDetecting = true;
+  const timestamp = performance.now();
   createImageBitmap(videoEl).then((bitmap) => {
-    poseWorker.postMessage({ type: "detect", bitmap }, [bitmap]);
+    poseWorker.postMessage({ type: "detect", bitmap, timestamp }, [bitmap]);
   });
 }
 function mirrorLandmark(lm) {
@@ -410,16 +413,26 @@ function dist2D(a, b) {
   return dist(a.x, a.y, b.x, b.y);
 }
 
+const POSE_SMOOTH = 0.25;       // 0 = frozen, 1 = no smoothing
+const POSE_HOLD_MS = 1000;      // keep last position this long after detection drops
+const POSE_MIN_VISIBILITY = 0.5; // landmarks below this are treated as absent
+let lastPoseDetectedTime = 0;
+
+function smoothLandmark(current, next) {
+  if (!current) return next;
+  return {
+    x: lerp(current.x, next.x, POSE_SMOOTH),
+    y: lerp(current.y, next.y, POSE_SMOOTH),
+    z: lerp(current.z, next.z, POSE_SMOOTH),
+    visibility: next.visibility,
+  };
+}
+
 function updatePoseState() {
   if (!latestLandmarks.length) {
-    poseState.active = false;
-    poseState.nose = null;
-    poseState.leftWrist = null;
-    poseState.rightWrist = null;
-    poseState.leftShoulder = null;
-    poseState.rightShoulder = null;
-    poseState.bodyCenter = null;
-    poseState.handSpan = 0;
+    if (performance.now() - lastPoseDetectedTime > POSE_HOLD_MS) {
+      poseState.active = false;
+    }
     return;
   }
 
@@ -431,21 +444,24 @@ function updatePoseState() {
   const leftWrist = pose[15];
   const rightWrist = pose[16];
 
-  if (!leftShoulder || !rightShoulder) {
-    poseState.active = false;
+  if (!leftShoulder || !rightShoulder ||
+      leftShoulder.visibility < POSE_MIN_VISIBILITY ||
+      rightShoulder.visibility < POSE_MIN_VISIBILITY) {
+    if (performance.now() - lastPoseDetectedTime > POSE_HOLD_MS) {
+      poseState.active = false;
+    }
     return;
   }
 
+  lastPoseDetectedTime = performance.now();
+
   poseState.active = true;
-  poseState.nose = nose ? mirrorLandmark(nose) : null;
-  poseState.leftShoulder = mirrorLandmark(leftShoulder);
-  poseState.rightShoulder = mirrorLandmark(rightShoulder);
-  poseState.leftWrist = leftWrist ? mirrorLandmark(leftWrist) : null;
-  poseState.rightWrist = rightWrist ? mirrorLandmark(rightWrist) : null;
-  poseState.bodyCenter = midpoint(
-    poseState.leftShoulder,
-    poseState.rightShoulder,
-  );
+  poseState.nose = nose ? smoothLandmark(poseState.nose, mirrorLandmark(nose)) : null;
+  poseState.leftShoulder = smoothLandmark(poseState.leftShoulder, mirrorLandmark(leftShoulder));
+  poseState.rightShoulder = smoothLandmark(poseState.rightShoulder, mirrorLandmark(rightShoulder));
+  poseState.leftWrist = leftWrist ? smoothLandmark(poseState.leftWrist, mirrorLandmark(leftWrist)) : null;
+  poseState.rightWrist = rightWrist ? smoothLandmark(poseState.rightWrist, mirrorLandmark(rightWrist)) : null;
+  poseState.bodyCenter = midpoint(poseState.leftShoulder, poseState.rightShoulder);
 
   if (poseState.leftWrist && poseState.rightWrist) {
     poseState.handSpan = dist2D(poseState.leftWrist, poseState.rightWrist);

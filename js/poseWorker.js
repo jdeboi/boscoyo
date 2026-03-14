@@ -14,11 +14,11 @@ async function init() {
       modelAssetPath:
         "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
     },
-    runningMode: "IMAGE",
+    runningMode: "VIDEO",
     numPoses: 1,
-    minPoseDetectionConfidence: 0.5,
-    minPosePresenceConfidence: 0.5,
-    minTrackingConfidence: 0.5,
+    minPoseDetectionConfidence: 0.65,
+    minPosePresenceConfidence: 0.65,
+    minTrackingConfidence: 0.65,
   });
 
   self.postMessage({ type: "ready" });
@@ -27,7 +27,7 @@ async function init() {
 self.onmessage = (e) => {
   if (e.data.type === "detect") {
     if (!poseLandmarker) return;
-    const result = poseLandmarker.detect(e.data.bitmap);
+    const result = poseLandmarker.detectForVideo(e.data.bitmap, e.data.timestamp);
     e.data.bitmap.close();
     self.postMessage({ type: "result", landmarks: result.landmarks });
   }
