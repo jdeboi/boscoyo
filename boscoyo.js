@@ -1,4 +1,6 @@
-let poseWorker = null;
+let bodyPose;
+let mlVideo;
+let mlPoses = [];
 
 let renderFrameCount = 0;
 let poseFrameCount = 0;
@@ -8,11 +10,7 @@ let lastFPSTime = 0;
 let lastRenderCount = 0;
 let lastPoseCount = 0;
 
-let videoEl;
-let latestLandmarks = [];
-let lastVideoTime = -1;
 let poseReady = false;
-let poseDetecting = false;
 
 const poseState = {
   active: false,
@@ -40,6 +38,7 @@ let director;
 const trees = [];
 
 function preload() {
+  bodyPose = ml5.bodyPose("BlazePose", { flipped: true });
   loadLotusImgs();
   treeImg = loadImage("./assets/tree.png");
   treeImg2 = loadImage("./assets/jotree.png");
@@ -51,76 +50,21 @@ function preload() {
     pirogue.imgs[i] = loadImage("./assets/Pirogues/" + i + ".png");
   }
 }
-async function setupCamera() {
-  setStatus("Requesting camera access...");
+function initPoseSystem() {
+  setStatus("Starting camera...");
+  mlVideo = createCapture(VIDEO);
+  mlVideo.size(480, 360);
+  mlVideo.hide();
 
-  videoEl = document.createElement("video");
-  videoEl.autoplay = true;
-  videoEl.playsInline = true;
-  videoEl.muted = true;
-  videoEl.setAttribute("autoplay", "");
-  videoEl.setAttribute("muted", "");
-  videoEl.setAttribute("playsinline", "");
-  videoEl.style.display = "none";
-  document.body.appendChild(videoEl);
-
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      width: { ideal: 480 },
-      height: { ideal: 360 },
-      frameRate: { ideal: 30 },
-    },
-    audio: false,
+  bodyPose.detectStart(mlVideo, (results) => {
+    mlPoses = results;
+    poseFrameCount++;
+    if (!poseReady) {
+      poseReady = true;
+      setStatus("Pose system ready");
+    }
+    updatePoseState();
   });
-
-  videoEl.srcObject = stream;
-
-  await new Promise((resolve) => {
-    videoEl.onloadedmetadata = () => resolve();
-  });
-
-  await videoEl.play();
-
-  console.log("Camera ready", videoEl.videoWidth, videoEl.videoHeight);
-  setStatus(`Camera ready: ${videoEl.videoWidth} x ${videoEl.videoHeight}`);
-}
-
-function setupPose() {
-  setStatus("Loading pose model...");
-  return new Promise((resolve, reject) => {
-    poseWorker = new Worker("./js/poseWorker.js");
-
-    poseWorker.onmessage = (e) => {
-      if (e.data.type === "ready") {
-        poseReady = true;
-        console.log("Pose model loaded");
-        setStatus("Pose model loaded");
-        resolve();
-      } else if (e.data.type === "result") {
-        poseDetecting = false;
-        poseFrameCount++;
-        latestLandmarks = e.data.landmarks || [];
-        updatePoseState();
-      }
-    };
-
-    poseWorker.onerror = (e) => {
-      reject(new Error(`Worker error: ${e.message}`));
-    };
-  });
-}
-
-async function initPoseSystem() {
-  try {
-    await setupCamera();
-    await setupPose();
-    console.log("Pose system ready");
-    setStatus("Pose system ready");
-  } catch (err) {
-    console.error("Pose setup failed:", err);
-    setStatus(`Pose setup failed: ${err.message || err}`);
-    throw err;
-  }
 }
 
 function setup() {
@@ -166,8 +110,6 @@ function draw() {
 
   background(0);
 
-  updatePoseDetection();
-
   drawStars();
   noCursor();
 
@@ -210,15 +152,8 @@ function debugPose() {
   noStroke();
   textSize(20);
   text(`poseReady: ${poseReady}`, 20, 90);
-  text(`video ready: ${videoEl ? videoEl.readyState : "no video"}`, 20, 120);
-  text(`pose active: ${poseState.active}`, 20, 150);
-  text(`landmarks: ${latestLandmarks.length}`, 20, 180);
-
-  if (!videoEl || videoEl.readyState < 2) {
-    text("camera not ready", 20, 210);
-    pop();
-    return;
-  }
+  text(`pose active: ${poseState.active}`, 20, 120);
+  text(`poses: ${mlPoses.length}`, 20, 150);
 
   if (!poseState.active) { pop(); return; }
 
@@ -380,25 +315,13 @@ function initTrees() {
     }
   }
 }
-function updatePoseDetection() {
-  if (!poseWorker || !poseReady || !videoEl) return;
-  if (videoEl.readyState < 2) return;
-  if (videoEl.currentTime === lastVideoTime) return;
-  if (poseDetecting) return;
-
-  lastVideoTime = videoEl.currentTime;
-  poseDetecting = true;
-  const timestamp = performance.now();
-  createImageBitmap(videoEl).then((bitmap) => {
-    poseWorker.postMessage({ type: "detect", bitmap, timestamp }, [bitmap]);
-  });
-}
-function mirrorLandmark(lm) {
+function scaleLandmark(kp) {
+  // ml5 returns pixel coords in video space; scale to canvas
   return {
-    x: width - lm.x * width,
-    y: lm.y * height,
-    z: lm.z,
-    visibility: lm.visibility ?? 1,
+    x: kp.x * (width / mlVideo.width),
+    y: kp.y * (height / mlVideo.height),
+    z: kp.z ?? 0,
+    visibility: kp.score ?? 1,
   };
 }
 
@@ -429,24 +352,26 @@ function smoothLandmark(current, next) {
 }
 
 function updatePoseState() {
-  if (!latestLandmarks.length) {
+  if (!mlPoses.length) {
     if (performance.now() - lastPoseDetectedTime > POSE_HOLD_MS) {
       poseState.active = false;
     }
     return;
   }
 
-  const pose = latestLandmarks[0];
+  const pose = mlPoses[0];
+  const kp = {};
+  for (const k of pose.keypoints) kp[k.name] = k;
 
-  const nose = pose[0];
-  const leftShoulder = pose[11];
-  const rightShoulder = pose[12];
-  const leftWrist = pose[15];
-  const rightWrist = pose[16];
+  const leftShoulder  = kp["left_shoulder"];
+  const rightShoulder = kp["right_shoulder"];
+  const nose          = kp["nose"];
+  const leftWrist     = kp["left_wrist"];
+  const rightWrist    = kp["right_wrist"];
 
   if (!leftShoulder || !rightShoulder ||
-      leftShoulder.visibility < POSE_MIN_VISIBILITY ||
-      rightShoulder.visibility < POSE_MIN_VISIBILITY) {
+      leftShoulder.score < POSE_MIN_VISIBILITY ||
+      rightShoulder.score < POSE_MIN_VISIBILITY) {
     if (performance.now() - lastPoseDetectedTime > POSE_HOLD_MS) {
       poseState.active = false;
     }
@@ -454,14 +379,14 @@ function updatePoseState() {
   }
 
   lastPoseDetectedTime = performance.now();
-
   poseState.active = true;
-  poseState.nose = nose ? smoothLandmark(poseState.nose, mirrorLandmark(nose)) : null;
-  poseState.leftShoulder = smoothLandmark(poseState.leftShoulder, mirrorLandmark(leftShoulder));
-  poseState.rightShoulder = smoothLandmark(poseState.rightShoulder, mirrorLandmark(rightShoulder));
-  poseState.leftWrist = leftWrist ? smoothLandmark(poseState.leftWrist, mirrorLandmark(leftWrist)) : null;
-  poseState.rightWrist = rightWrist ? smoothLandmark(poseState.rightWrist, mirrorLandmark(rightWrist)) : null;
-  poseState.bodyCenter = midpoint(poseState.leftShoulder, poseState.rightShoulder);
+
+  poseState.nose          = nose      ? smoothLandmark(poseState.nose,          scaleLandmark(nose))          : null;
+  poseState.leftShoulder  =             smoothLandmark(poseState.leftShoulder,  scaleLandmark(leftShoulder));
+  poseState.rightShoulder =             smoothLandmark(poseState.rightShoulder, scaleLandmark(rightShoulder));
+  poseState.leftWrist     = leftWrist  ? smoothLandmark(poseState.leftWrist,    scaleLandmark(leftWrist))     : null;
+  poseState.rightWrist    = rightWrist ? smoothLandmark(poseState.rightWrist,   scaleLandmark(rightWrist))    : null;
+  poseState.bodyCenter    = midpoint(poseState.leftShoulder, poseState.rightShoulder);
 
   if (poseState.leftWrist && poseState.rightWrist) {
     poseState.handSpan = dist2D(poseState.leftWrist, poseState.rightWrist);
@@ -481,16 +406,8 @@ function setStatus(msg) {
   if (statusEl) statusEl.textContent = msg;
 }
 if (startBtn) {
-  startBtn.addEventListener("click", async () => {
-    try {
-      startBtn.disabled = true;
-      setStatus("Starting camera...");
-      await initPoseSystem();
-      setStatus("Pose system ready");
-    } catch (err) {
-      console.error(err);
-      setStatus("Pose setup failed");
-      startBtn.disabled = false;
-    }
+  startBtn.addEventListener("click", () => {
+    startBtn.disabled = true;
+    initPoseSystem();
   });
 }
