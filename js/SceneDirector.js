@@ -1,5 +1,5 @@
 // start at the beginning of pirogue scene, and play sequentially
-const START_SCENE_ID = null;
+const START_SCENE_ID = "duckweed";
 let treeY = 0;
 const history1 = [
   "For thousands of years, cypress forests filled the Louisiana swamps,",
@@ -65,6 +65,11 @@ const scenes = [
     id: "lotus",
     durationSeconds: 20,
     draw: displayLotus,
+  },
+  {
+    id: "duckweed",
+    durationSeconds: 30,
+    draw: displayDuckweed,
   },
   {
     id: "bigTreeQuestions",

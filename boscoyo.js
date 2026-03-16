@@ -26,6 +26,7 @@ const poseState = {
 let xPosition = 0;
 let treeImg;
 let treeImg2;
+let gatorImg;
 let font;
 let stars = [];
 let pMapper;
@@ -39,6 +40,7 @@ const trees = [];
 
 function preload() {
   bodyPose = ml5.bodyPose("BlazePose", { flipped: true });
+  gatorImg = loadImage("./assets/gator.png");
   loadLotusImgs();
   treeImg = loadImage("./assets/tree.png");
   treeImg2 = loadImage("./assets/jotree.png");
@@ -68,6 +70,7 @@ function initPoseSystem() {
 }
 
 function setup() {
+  pixelDensity(1);
   const c = createCanvas(windowWidth, windowHeight);
   c.position(0, 0);
   c.style("position", "fixed");
@@ -96,6 +99,7 @@ function setup() {
   initTrees();
   initBird();
   setupLotus();
+  setupDuckweed();
 
   setStatus("Ready. Click Start Camera.");
 }
@@ -110,7 +114,8 @@ function draw() {
 
   background(0);
 
-  drawStars();
+  const activeSceneId = director.scenes[director.activeIndex]?.id;
+  if (activeSceneId !== "duckweed") drawStars();
   noCursor();
 
   director.update(deltaTime, this);
