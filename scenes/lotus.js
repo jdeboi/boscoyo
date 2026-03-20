@@ -129,7 +129,9 @@ function setupLotus() {
 }
 
 function displayLotus() {
-  const ix = poseState.active && poseState.bodyCenter ? poseState.bodyCenter.x : mouseX;
+  const ix = poseState.bodies.length > 0
+    ? poseState.bodies.reduce((sum, b) => sum + b.bodyCenter.x, 0) / poseState.bodies.length
+    : mouseX;
   const windTarget = map(ix, 0, width, -0.2, 0.2);
   lotusWind = lerp(lotusWind, windTarget, 0.05);
 

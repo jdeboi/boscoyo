@@ -14,6 +14,8 @@ let poseReady = false;
 
 const poseState = {
   active: false,
+  bodies: [],          // all detected people
+  // first body mirrored here for backwards compat
   nose: null,
   leftWrist: null,
   rightWrist: null,
@@ -39,7 +41,7 @@ let director;
 const trees = [];
 
 function preload() {
-  bodyPose = ml5.bodyPose("BlazePose", { flipped: true });
+  bodyPose = ml5.bodyPose("MoveNet", { flipped: true, modelType: "MULTIPOSE_LIGHTNING" });
   gatorImg = loadImage("./assets/gator.png");
   loadLotusImgs();
   treeImg = loadImage("./assets/tree.png");
@@ -358,47 +360,72 @@ function smoothLandmark(current, next) {
 }
 
 function updatePoseState() {
+  const now = performance.now();
+
   if (!mlPoses.length) {
-    if (performance.now() - lastPoseDetectedTime > POSE_HOLD_MS) {
+    if (now - lastPoseDetectedTime > POSE_HOLD_MS) {
       poseState.active = false;
+      poseState.bodies = [];
     }
     return;
   }
 
-  const pose = mlPoses[0];
-  const kp = {};
-  for (const k of pose.keypoints) kp[k.name] = k;
+  const newBodies = [];
+  for (let i = 0; i < mlPoses.length; i++) {
+    const pose = mlPoses[i];
+    const kp = {};
+    for (const k of pose.keypoints) kp[k.name] = k;
 
-  const leftShoulder  = kp["left_shoulder"];
-  const rightShoulder = kp["right_shoulder"];
-  const nose          = kp["nose"];
-  const leftWrist     = kp["left_wrist"];
-  const rightWrist    = kp["right_wrist"];
+    const leftShoulder  = kp["left_shoulder"];
+    const rightShoulder = kp["right_shoulder"];
+    if (!leftShoulder || !rightShoulder ||
+        leftShoulder.score < POSE_MIN_VISIBILITY ||
+        rightShoulder.score < POSE_MIN_VISIBILITY) continue;
 
-  if (!leftShoulder || !rightShoulder ||
-      leftShoulder.score < POSE_MIN_VISIBILITY ||
-      rightShoulder.score < POSE_MIN_VISIBILITY) {
-    if (performance.now() - lastPoseDetectedTime > POSE_HOLD_MS) {
+    const prev        = poseState.bodies[i] ?? {};
+    const nose        = kp["nose"];
+    const leftWrist   = kp["left_wrist"];
+    const rightWrist  = kp["right_wrist"];
+
+    const sLS = smoothLandmark(prev.leftShoulder,  scaleLandmark(leftShoulder));
+    const sRS = smoothLandmark(prev.rightShoulder, scaleLandmark(rightShoulder));
+
+    const body = {
+      nose:          nose       ? smoothLandmark(prev.nose,        scaleLandmark(nose))       : null,
+      leftShoulder:  sLS,
+      rightShoulder: sRS,
+      leftWrist:     leftWrist  ? smoothLandmark(prev.leftWrist,   scaleLandmark(leftWrist))  : null,
+      rightWrist:    rightWrist ? smoothLandmark(prev.rightWrist,  scaleLandmark(rightWrist)) : null,
+      bodyCenter:    midpoint(sLS, sRS),
+      handSpan:      0,
+    };
+    if (body.leftWrist && body.rightWrist) {
+      body.handSpan = dist2D(body.leftWrist, body.rightWrist);
+    }
+    newBodies.push(body);
+  }
+
+  if (!newBodies.length) {
+    if (now - lastPoseDetectedTime > POSE_HOLD_MS) {
       poseState.active = false;
+      poseState.bodies = [];
     }
     return;
   }
 
-  lastPoseDetectedTime = performance.now();
+  lastPoseDetectedTime = now;
+  poseState.bodies = newBodies;
   poseState.active = true;
 
-  poseState.nose          = nose      ? smoothLandmark(poseState.nose,          scaleLandmark(nose))          : null;
-  poseState.leftShoulder  =             smoothLandmark(poseState.leftShoulder,  scaleLandmark(leftShoulder));
-  poseState.rightShoulder =             smoothLandmark(poseState.rightShoulder, scaleLandmark(rightShoulder));
-  poseState.leftWrist     = leftWrist  ? smoothLandmark(poseState.leftWrist,    scaleLandmark(leftWrist))     : null;
-  poseState.rightWrist    = rightWrist ? smoothLandmark(poseState.rightWrist,   scaleLandmark(rightWrist))    : null;
-  poseState.bodyCenter    = midpoint(poseState.leftShoulder, poseState.rightShoulder);
-
-  if (poseState.leftWrist && poseState.rightWrist) {
-    poseState.handSpan = dist2D(poseState.leftWrist, poseState.rightWrist);
-  } else {
-    poseState.handSpan = 0;
-  }
+  // mirror first body onto top-level fields for backwards compat
+  const first = newBodies[0];
+  poseState.nose          = first.nose;
+  poseState.leftShoulder  = first.leftShoulder;
+  poseState.rightShoulder = first.rightShoulder;
+  poseState.leftWrist     = first.leftWrist;
+  poseState.rightWrist    = first.rightWrist;
+  poseState.bodyCenter    = first.bodyCenter;
+  poseState.handSpan      = first.handSpan;
 }
 
 function windowResized() {

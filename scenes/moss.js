@@ -24,11 +24,14 @@ function setupMossScene() {
 function displayMossScene() {
   background(8, 18, 12);
 
-  const rx = poseState.active && poseState.bodyCenter ? poseState.bodyCenter.x : mouseX;
-  const ry = poseState.active && poseState.bodyCenter ? poseState.bodyCenter.y : mouseY;
-
   for (const chain of mossSceneChains) {
-    chain.applyRepulsion(rx, ry, 200, 0.8);
+    if (poseState.bodies.length > 0) {
+      for (const body of poseState.bodies) {
+        chain.applyRepulsion(body.bodyCenter.x, body.bodyCenter.y, 200, 0.8);
+      }
+    } else {
+      chain.applyRepulsion(mouseX, mouseY, 200, 0.8);
+    }
     chain.update([]);
     chain.grow(0.5);
     chain.display();
