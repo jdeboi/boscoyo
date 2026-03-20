@@ -50,6 +50,12 @@ class MossBush {
       mossChain.handleMouseReleased();
     });
   }
+
+  applyRepulsion(rx, ry, radius, strength) {
+    this.mossChains.forEach((mossChain) => {
+      mossChain.applyRepulsion(rx, ry, radius, strength);
+    });
+  }
 }
 
 class MossChain {
@@ -60,6 +66,7 @@ class MossChain {
     this.draggingNode = null;
     this.col = this.getColor();
     this.nodeSpacing = random(10, 30) * szFactor;
+    this.noiseOffset = random(0, 1000);
     this.growthLength = 0; // Tracks the total growth length
     this.terminalLength = terminalLength * szFactor;
     this.isGrowing = true;
@@ -222,8 +229,8 @@ class MossChain {
     for (let i = 0; i < this.nodes.length; i++) {
       let node = this.nodes[i];
       if (!node.isFixed && node !== this.draggingNode) {
-        let noiseX = noise(i * 1, time) * 2 - 1; // Smooth horizontal noise
-        let noiseY = noise(i * 0.2 + 100, time) * 2 - 1; // Smooth vertical noise
+        let noiseX = noise(i * 1 + this.noiseOffset, time) * 2 - 1;
+        let noiseY = noise(i * 0.2 + this.noiseOffset + 100, time) * 2 - 1;
         node.x += noiseX * 0.2; // Subtle horizontal offset
         node.y += noiseY * 0.05; // Subtle vertical offset
       }
@@ -309,6 +316,22 @@ class MossChain {
 
   handleMouseReleased() {
     this.draggingNode = null;
+  }
+
+  applyRepulsion(rx, ry, radius, strength) {
+    for (const node of this.nodes) {
+      if (node.isFixed) continue;
+      const dx = node.x - rx;
+      const dy = node.y - ry;
+      const dSq = dx * dx + dy * dy;
+      const rSq = radius * radius;
+      if (dSq < rSq && dSq > 0) {
+        const d = sqrt(dSq);
+        const force = strength * (1 - d / radius);
+        node.x += (dx / d) * force;
+        node.y += (dy / d) * force;
+      }
+    }
   }
 }
 

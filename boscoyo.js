@@ -100,6 +100,7 @@ function setup() {
   initBird();
   setupLotus();
   setupDuckweed();
+  setupMossScene();
 
   setStatus("Ready. Click Start Camera.");
 }
@@ -115,7 +116,7 @@ function draw() {
   background(0);
 
   const activeSceneId = director.scenes[director.activeIndex]?.id;
-  if (activeSceneId !== "duckweed") drawStars();
+  if (activeSceneId !== "duckweed" && activeSceneId !== "moss") drawStars();
   noCursor();
 
   director.update(deltaTime, this);

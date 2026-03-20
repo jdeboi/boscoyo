@@ -1,5 +1,5 @@
 // start at the beginning of pirogue scene, and play sequentially
-const START_SCENE_ID = "duckweed";
+const START_SCENE_ID = "moss";
 let treeY = 0;
 const history1 = [
   "For thousands of years, cypress forests filled the Louisiana swamps,",
@@ -70,6 +70,11 @@ const scenes = [
     id: "duckweed",
     durationSeconds: 30,
     draw: displayDuckweed,
+  },
+  {
+    id: "moss",
+    durationSeconds: 30,
+    draw: displayMossScene,
   },
   {
     id: "bigTreeQuestions",
@@ -417,7 +422,7 @@ class SceneDirector {
     }
 
     const idx = this.scenes.findIndex(
-      (s) => this.t >= s.startMs && this.t < s.endMs
+      (s) => this.t >= s.startMs && this.t < s.endMs,
     );
     this._setActive(idx === -1 ? this.scenes.length - 1 : idx, pg);
 
