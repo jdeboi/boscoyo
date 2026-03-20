@@ -1,3 +1,5 @@
+let lotusWind = 0; // smoothed wind angle, updated each frame
+
 const lotusLeafImgs = [];
 const lotusLeafScales = [0.7, 0.9, 0.8];
 const lotusFlowerImgs = [];
@@ -127,6 +129,10 @@ function setupLotus() {
 }
 
 function displayLotus() {
+  const ix = poseState.active && poseState.bodyCenter ? poseState.bodyCenter.x : mouseX;
+  const windTarget = map(ix, 0, width, -0.2, 0.2);
+  lotusWind = lerp(lotusWind, windTarget, 0.05);
+
   push();
   scale(0.56);
   trees[1].display(500);
@@ -164,8 +170,8 @@ class Plant {
   }
 
   update() {
-    // use noise to create gentle swaying motion
-    this.rot = map(noise(frameCount * 0.01 + this.x), 0, 1, -0.1, 0.1);
+    const sway = map(noise(frameCount * 0.01 + this.x), 0, 1, -0.05, 0.05);
+    this.rot = lotusWind + sway;
   }
 }
 
@@ -211,8 +217,8 @@ class Flower extends Plant {
   }
 
   update() {
-    // gentle wind sway
-    this.rot = map(noise(frameCount * 0.01 + this.x), 0, 1, -0.15, 0.15);
+    const sway = map(noise(frameCount * 0.01 + this.x), 0, 1, -0.06, 0.06);
+    this.rot = lotusWind + sway;
   }
 }
 
