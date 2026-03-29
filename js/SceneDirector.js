@@ -1,5 +1,6 @@
 // start at the beginning of pirogue scene, and play sequentially
-const START_SCENE_ID = "moss";
+const START_SCENE_ID = "lotus";
+
 let treeY = 0;
 const history1 = [
   "For thousands of years, cypress forests filled the Louisiana swamps,",
@@ -75,6 +76,11 @@ const scenes = [
     id: "moss",
     durationSeconds: 30,
     draw: displayMossScene,
+  },
+  {
+    id: "pirogueScene",
+    durationSeconds: 30,
+    draw: displayPirogueScene,
   },
   {
     id: "bigTreeQuestions",

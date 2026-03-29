@@ -103,6 +103,7 @@ function setup() {
   setupLotus();
   setupDuckweed();
   setupMossScene();
+  setupPirogueScene();
 
   setStatus("Ready. Click Start Camera.");
 }
@@ -118,7 +119,8 @@ function draw() {
   background(0);
 
   const activeSceneId = director.scenes[director.activeIndex]?.id;
-  if (activeSceneId !== "duckweed" && activeSceneId !== "moss") drawStars();
+  const scenesWithoutStars = ["duckweed", "moss", "pirogueScene"];
+  if (!scenesWithoutStars.includes(activeSceneId)) drawStars();
   noCursor();
 
   director.update(deltaTime, this);
