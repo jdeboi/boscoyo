@@ -11,6 +11,7 @@ let lastRenderCount = 0;
 let lastPoseCount = 0;
 
 let mappedSurface;
+let scene2D;
 
 let poseReady = false;
 
@@ -79,6 +80,8 @@ function initPoseSystem() {
 function setup() {
   pixelDensity(1);
   const c = createCanvas(windowWidth, windowHeight, WEBGL);
+  scene2D = createGraphics(width, height);
+
   c.position(0, 0);
   c.style("position", "fixed");
   c.style("left", "0");
@@ -91,24 +94,25 @@ function setup() {
       loop: true,
       startAtSceneId: START_SCENE_ID,
     },
-    this,
+    scene2D,
   );
 
+  scene2D.textFont(font);
   textFont(font);
 
-  createLayeredStars();
+  createLayeredStars(scene2D);
 
   for (let i = 0; i < 6; i++) {
     pirogue.imgs[i].resize(0, 500);
   }
   pirogue.y = 100;
 
-  initTrees();
-  initBird();
-  setupLotus();
-  setupDuckweed();
-  setupMossScene();
-  setupPirogueScene();
+  initTrees(scene2D);
+  initBird(scene2D);
+  setupLotus(scene2D);
+  setupDuckweed(scene2D);
+  setupMossScene(scene2D);
+  setupPirogueScene(scene2D);
 
   initProjectionMapper();
   pMapper.load("maps/map.json");
@@ -116,35 +120,34 @@ function setup() {
   setStatus("Ready. Click Start Camera.");
 }
 function draw() {
+  background(0);
   renderFrameCount++;
   push();
-
   if (shouldInvert) {
     scale(-1, 1);
     translate(-width, 0);
   }
 
-  background(0);
+  scene2D.push();
+  scene2D.clear();
+
+  scene2D.background(0);
 
   const activeSceneId = director.scenes[director.activeIndex]?.id;
   const scenesWithoutStars = ["duckweed", "moss", "pirogueScene"];
-  if (!scenesWithoutStars.includes(activeSceneId)) drawStars();
+  if (!scenesWithoutStars.includes(activeSceneId)) drawStars(scene2D);
   // noCursor();
 
-  director.update(deltaTime, this);
-  director.draw(this);
+  director.update(deltaTime, scene2D);
+  director.draw(scene2D);
 
-  if (debugMode) debugPose();
+  if (debugMode) debugPose(scene2D);
 
-  pop();
+  scene2D.pop();
 
-  if (mappedSurface) {
-    const frameTexture = get();
-    background(0);
-    mappedSurface.displayTexture(frameTexture);
-  }
-
+  mappedSurface.displayTexture(scene2D);
   displayFrameRate();
+  pop();
 }
 
 function updateFPS() {
@@ -172,19 +175,18 @@ function displayFrameRate() {
   pop();
 }
 
-function debugPose() {
-  push();
-  resetMatrix();
+function debugPose(pg = scene2D) {
+  pg.push();
+  pg.resetMatrix();
 
-  fill(255);
-  noStroke();
-  textSize(20);
-  text(`poseReady: ${poseReady}`, 20, 90);
-  text(`pose active: ${poseState.active}`, 20, 120);
-  text(`poses: ${mlPoses.length}`, 20, 150);
-
+  pg.fill(255);
+  pg.noStroke();
+  pg.textSize(20);
+  pg.text(`poseReady: ${poseReady}`, 20, 90);
+  pg.text(`pose active: ${poseState.active}`, 20, 120);
+  pg.text(`poses: ${mlPoses.length}`, 20, 150);
   if (!poseState.active) {
-    pop();
+    pg.pop();
     return;
   }
 
@@ -197,27 +199,27 @@ function debugPose() {
 
   for (const { pt, label, col } of landmarks) {
     if (!pt) continue;
-    fill(...col);
-    noStroke();
-    circle(pt.x, pt.y, 24);
-    textSize(14);
-    text(label, pt.x + 16, pt.y + 5);
+    pg.fill(...col);
+    pg.noStroke();
+    pg.circle(pt.x, pt.y, 24);
+    pg.textSize(14);
+    pg.text(label, pt.x + 16, pt.y + 5);
   }
 
-  pop();
+  pg.pop();
 }
 
-function createLayeredStars() {
+function createLayeredStars(scene) {
   stars = [];
-  for (let i = 0; i < 100; i++) stars.push(new Star(1)); // close
-  for (let i = 0; i < 150; i++) stars.push(new Star(2)); // mid
-  for (let i = 0; i < 200; i++) stars.push(new Star(3)); // far
+  for (let i = 0; i < 100; i++) stars.push(new Star(1, scene)); // close
+  for (let i = 0; i < 150; i++) stars.push(new Star(2, scene)); // mid
+  for (let i = 0; i < 200; i++) stars.push(new Star(3, scene)); // far
 }
 
-function drawStars() {
+function drawStars(pg) {
   for (let s of stars) {
-    s.update();
-    s.display(xPosition);
+    s.update(pg);
+    s.display(xPosition, pg);
   }
 }
 
@@ -226,6 +228,7 @@ function drawStars() {
 function drawWaterBand(
   yBase = 500,
   xPosition = 0,
+  pg = scene2D,
   {
     amp = 30, // vertical wave amplitude in pixels
     step = 8, // horizontal resolution (smaller = smoother, slower)
@@ -238,20 +241,19 @@ function drawWaterBand(
 ) {
   if (bandDepth === null) bandDepth = height - yBase;
 
-  noStroke();
+  pg.noStroke();
   if (hasOutline) {
-    stroke(255);
-    strokeWeight(2);
+    pg.stroke(255);
+    pg.strokeWeight(2);
   }
 
-  fill(0); // black water
+  pg.fill(0); // black water
 
   const t = millis() * noiseSpeed; // time dimension for noise
 
-  beginShape();
-
+  pg.beginShape();
   // left bottom corner
-  vertex(-100, yBase + bandDepth);
+  pg.vertex(-100, yBase + bandDepth);
   // left side up into the wave
   // (optional, but keeps shape nice and closed)
   // vertex(0, yBase);
@@ -262,25 +264,24 @@ function drawWaterBand(
     const n = noise(worldX * noiseScaleX, t); // 0..1
     const offset = (n - 0.5) * 2 * amp; // -amp..amp
     const y = yBase + offset;
-    vertex(x, y);
+    pg.vertex(x, y);
   }
 
   // right side back down to bottom
-  vertex(width, yBase + bandDepth);
-
-  endShape(CLOSE);
+  pg.vertex(width, yBase + bandDepth);
+  pg.endShape(CLOSE);
 }
 
-function displayOutline() {
-  noFill();
-  strokeWeight(10);
-  stroke(255);
-  rect(0, 0, width, height);
-  pop();
+function displayOutline(pg = scene2D) {
+  pg.noFill();
+  pg.strokeWeight(10);
+  pg.stroke(255);
+  pg.rect(0, 0, width, height);
+  pg.pop();
 }
 
-function resetAnimation() {
-  textFont(font);
+function resetAnimation(pg = scene2D) {
+  pg.textFont(font);
   moveForward = false;
   xPosition = 0;
   trees.forEach((tree) => tree.reset());
@@ -313,15 +314,15 @@ function keyPressed() {
   }
 }
 
-function initBird() {
-  bird.y = height - 180;
+function initBird(pg = scene2D) {
+  bird.y = pg.height - 180;
 
   for (let i = 0; i < bird.imgs.length; i++) {
     bird.imgs[i].resize(0, 180);
   }
 }
 
-function initTrees() {
+function initTrees(pg = scene2D) {
   treeImg2.resize(treeImg2.width * 0.58, 0);
   let x = 0;
   for (let i = 0; i < 5; i++) {
@@ -332,7 +333,7 @@ function initTrees() {
         { x: 1200, y: 100, numSegments: 4, mossScale: 1.2 },
         { x: 1400, y: 990, numSegments: 5, mossScale: 1.3 },
       ];
-      trees.push(new Cypress(x, treeImg, treeFactor, mossLocations));
+      trees.push(new Cypress(x, treeImg, treeFactor, mossLocations, pg));
       x += treeImg.width * treeFactor + 100;
     } else {
       const treeFactor = 0.38;
@@ -341,7 +342,7 @@ function initTrees() {
         { x: 850, y: 60, numSegments: 4, mossScale: 1 },
         { x: 1100, y: 800, numSegments: 5, mossScale: 1 },
       ];
-      trees.push(new Cypress(x, treeImg2, treeFactor, mossLocations));
+      trees.push(new Cypress(x, treeImg2, treeFactor, mossLocations, pg));
       x += treeImg2.width * treeFactor + 100;
     }
   }
@@ -464,6 +465,7 @@ function updatePoseState() {
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+  // scene2D.resizeCanvas(windowWidth, windowHeight);
   recreateProjectionSurface();
 }
 

@@ -1,7 +1,8 @@
 class MossBush {
-  constructor(x, y, numChains, szFactor) {
+  constructor(x, y, numChains, szFactor, pg) {
     this.mossChains = [];
     this.szFactor = szFactor;
+    this.pg = pg;
     for (let i = 0; i < numChains; i++) {
       const dx = i * 3 * szFactor;
       const dy = random(-5, 5) * szFactor;
@@ -12,7 +13,7 @@ class MossBush {
         len = map(i, numChains / 2, numChains, maxLen, minLen);
       }
       len += random(-10, 10) * szFactor;
-      this.mossChains.push(new MossChain(x + dx, y + dy, len, szFactor));
+      this.mossChains.push(new MossChain(x + dx, y + dy, len, szFactor, pg));
     }
   }
 
@@ -26,7 +27,7 @@ class MossBush {
     this.mossChains.forEach((mossChain) => {
       // remove current mossChain from this.mossChains
       const otherChains = this.mossChains.filter(
-        (chain) => chain !== mossChain
+        (chain) => chain !== mossChain,
       );
       mossChain.update(otherChains);
       mossChain.grow(growthRate);
@@ -59,12 +60,14 @@ class MossBush {
 }
 
 class MossChain {
-  constructor(x, y, terminalLength, szFactor) {
+  constructor(x, y, terminalLength, szFactor, pg) {
     this.nodes = [];
+    this.pg = pg;
     this.szFactor = szFactor;
     this.constraints = [];
     this.draggingNode = null;
     this.col = this.getColor();
+
     this.nodeSpacing = random(10, 30) * szFactor;
     this.noiseOffset = random(0, 1000);
     this.growthLength = 0; // Tracks the total growth length
@@ -89,17 +92,22 @@ class MossChain {
   }
 
   getColor() {
-    const colors = [color(127, 141, 127), color(255)];
-    const col = lerpColor(colors[0], colors[1], random(0, 1));
-    return color(red(col), green(col), blue(col), 255);
+    const colors = [this.pg.color(127, 141, 127), this.pg.color(255)];
+    const col = this.pg.lerpColor(colors[0], colors[1], this.pg.random(0, 1));
+    return this.pg.color(
+      this.pg.red(col),
+      this.pg.green(col),
+      this.pg.blue(col),
+      255,
+    );
   }
 
   // Generate random leaves
   createLeaves() {
-    const leafCount = int(random(1, 4)); // 1 to 3 leaves
+    const leafCount = int(this.pg.random(1, 4), this.pg); // 1 to 3 leaves
     let leaves = [];
     for (let i = 0; i < leafCount; i++) {
-      leaves.push(new Leaf(i, this.szFactor));
+      leaves.push(new Leaf(i, this.szFactor, this.pg));
     }
     return leaves;
   }
@@ -130,7 +138,7 @@ class MossChain {
     // let dy = targetY - tipNode.y;
     // let distance = sqrt(dx * dx + dy * dy);
 
-    let distance = dist(lastNode.x, lastNode.y, tipNode.x, tipNode.y);
+    let distance = this.pg.dist(lastNode.x, lastNode.y, tipNode.x, tipNode.y);
     if (distance < this.nodeSpacing) {
       tipNode.y += growthRate; //(dy / distance) * growthRate;
       const lastContraint = this.constraints[this.constraints.length - 1];
@@ -152,7 +160,7 @@ class MossChain {
   }
 
   createNode() {
-    this.nodeSpacing = random(10, 30) * this.szFactor;
+    this.nodeSpacing = this.pg.random(10, 30) * this.szFactor;
     let tipNode = this.nodes[this.nodes.length - 1];
     this.nodes.push({
       x: tipNode.x,
@@ -187,7 +195,7 @@ class MossChain {
         let nodeB = otherNodes[j];
         let dx = nodeB.x - nodeA.x;
         let dy = nodeB.y - nodeA.y;
-        let distance = sqrt(dx * dx + dy * dy);
+        let distance = this.pg.sqrt(dx * dx + dy * dy);
         if (distance === 0 || distance > distanceThreshold) continue;
 
         // Normalize the vector
@@ -257,11 +265,11 @@ class MossChain {
     for (let constraint of this.constraints) {
       let dx = constraint.nodeB.x - constraint.nodeA.x;
       let dy = constraint.nodeB.y - constraint.nodeA.y;
-      let distance = dist(
+      let distance = this.pg.dist(
         constraint.nodeA.x,
         constraint.nodeA.y,
         constraint.nodeB.x,
-        constraint.nodeB.y
+        constraint.nodeB.y,
       );
       let diff = (distance - constraint.length) / distance;
 
@@ -276,16 +284,16 @@ class MossChain {
     }
   }
 
-  display() {
+  display(pg = this.pg) {
     // Draw constraints
-    stroke(this.col);
-    strokeWeight(2);
+    pg.stroke(this.col);
+    pg.strokeWeight(2);
     for (let constraint of this.constraints) {
-      line(
+      pg.line(
         constraint.nodeA.x,
         constraint.nodeA.y,
         constraint.nodeB.x,
-        constraint.nodeB.y
+        constraint.nodeB.y,
       );
     }
 
@@ -293,24 +301,24 @@ class MossChain {
     for (let node of this.nodes) {
       // Display leaves
       for (let leaf of node.leaves) {
-        leaf.display(node.x, node.y, this.col);
+        leaf.display(node.x, node.y, this.col, pg);
       }
     }
   }
 
-  handleMousePressed() {
+  handleMousePressed(pg = this.pg) {
     for (let node of this.nodes) {
-      if (dist(mouseX, mouseY, node.x, node.y) < 10) {
+      if (pg.dist(pg.mouseX, pg.mouseY, node.x, node.y) < 10) {
         this.draggingNode = node;
         break;
       }
     }
   }
 
-  handleMouseDragged() {
+  handleMouseDragged(pg = this.pg) {
     if (this.draggingNode) {
-      this.draggingNode.x = mouseX;
-      this.draggingNode.y = mouseY;
+      this.draggingNode.x = pg.mouseX;
+      this.draggingNode.y = pg.mouseY;
     }
   }
 
@@ -336,7 +344,8 @@ class MossChain {
 }
 
 class Leaf {
-  constructor(id, szFactor) {
+  constructor(id, szFactor, pg) {
+    this.pg = pg;
     let { angle, terminalLength, curvature, direction } = this.getLeaf(id);
     this.angle = angle;
     this.length = 0; // Current length
@@ -346,7 +355,7 @@ class Leaf {
   }
 
   getLeaf(id) {
-    if (random() < 0.3) {
+    if (this.pg.random() < 0.3) {
       return this.getRandomLeaf();
     } else {
       return this.getNormalLeaf(id);
@@ -354,10 +363,10 @@ class Leaf {
   }
 
   getRandomLeaf() {
-    let angle = random(-PI * 2, PI * 2); // Random angle from the node
-    let terminalLength = random(20, 40); // Random length for the leaf
-    let curvature = random(0.2, 1); // Amount of curl
-    let direction = random([1, -1]); // Curl direction: 1 for right, -1 for left
+    let angle = this.pg.random(-this.pg.PI * 2, this.pg.PI * 2); // Random angle from the node
+    let terminalLength = this.pg.random(20, 40); // Random length for the leaf
+    let curvature = this.pg.random(0.2, 1); // Amount of curl
+    let direction = this.pg.random([1, -1]); // Curl direction: 1 for right, -1 for left
     return { angle, terminalLength, curvature, direction };
   }
 
@@ -365,12 +374,12 @@ class Leaf {
     const leafStates = [
       [3, 1],
       [0, -1],
-      [random(-PI, PI), random([1, -1])],
+      [this.pg.random(-this.pg.PI, this.pg.PI), this.pg.random([1, -1])],
     ];
     const leafState = leafStates[i % 2];
-    let angle = leafState[0] + random(-0.3, 0.3); //random(-PI * 2, PI * 2); // Random angle from the node
-    let terminalLength = random(20, 40); // Random length for the leaf
-    let curvature = random(0.2, 1.3); // Amount of curl
+    let angle = leafState[0] + this.pg.random(-0.3, 0.3); //this.pg.random(-PI * 2, PI * 2); // Random angle from the node
+    let terminalLength = this.pg.random(20, 40); // Random length for the leaf
+    let curvature = this.pg.random(0.2, 1.3); // Amount of curl
     let direction = leafState[1]; //random([1, -1]); // Curl direction: 1 for right, -1 for left
     return { angle, terminalLength, curvature, direction };
   }
@@ -383,27 +392,29 @@ class Leaf {
   }
 
   display(nodeX, nodeY, col) {
-    stroke(col);
-    strokeWeight(2);
+    this.pg.stroke(col);
+    this.pg.strokeWeight(2);
 
     let startX = nodeX;
     let startY = nodeY;
-    let endX = startX + cos(this.angle) * this.length;
-    let endY = startY + sin(this.angle) * this.length;
+    let endX = startX + this.pg.cos(this.angle) * this.length;
+    let endY = startY + this.pg.sin(this.angle) * this.length;
 
     // Calculate control points for curling
-    let midX = startX + cos(this.angle) * (this.length / 2);
-    let midY = startY + sin(this.angle) * (this.length / 2);
+    let midX = startX + this.pg.cos(this.angle) * (this.length / 2);
+    let midY = startY + this.pg.sin(this.angle) * (this.length / 2);
     let curlX =
-      midX + this.curvature * this.direction * sin(this.angle) * this.length;
+      midX +
+      this.curvature * this.direction * this.pg.sin(this.angle) * this.length;
     let curlY =
-      midY - this.curvature * this.direction * cos(this.angle) * this.length;
+      midY -
+      this.curvature * this.direction * this.pg.cos(this.angle) * this.length;
 
     // Draw the curled leaf as a quadratic curve
-    noFill();
-    beginShape();
-    vertex(startX, startY);
-    quadraticVertex(curlX, curlY, endX, endY);
-    endShape();
+    this.pg.noFill();
+    this.pg.beginShape();
+    this.pg.vertex(startX, startY);
+    this.pg.quadraticVertex(curlX, curlY, endX, endY);
+    this.pg.endShape();
   }
 }

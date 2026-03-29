@@ -57,40 +57,46 @@ function setupDuckweed() {
   }
 }
 
-function displayDuckweed() {
-  background(8, 18, 12);
+function displayDuckweed(pg = scene2D) {
+  pg.background(8, 18, 12);
 
   const repellers = [{ x: mouseX, y: mouseY, radius: 220, strength: 1.5 }];
   for (const body of poseState.bodies) {
-    repellers.push({ x: body.bodyCenter.x, y: body.bodyCenter.y, radius: 220, strength: 1.5 });
+    repellers.push({
+      x: body.bodyCenter.x,
+      y: body.bodyCenter.y,
+      radius: 220,
+      strength: 1.5,
+    });
   }
 
   for (const p of duckweedParticles) {
     p.update(repellers);
   }
 
-  fill(52, 120, 48);
-  noStroke();
+  pg.fill(52, 120, 48);
+  pg.noStroke();
   for (const p of duckweedParticles) {
-    rect(p.x - p.w / 2, p.y - p.h / 2, p.w, p.h);
+    pg.rect(p.x - p.w / 2, p.y - p.h / 2, p.w, p.h);
   }
 
   // draw one gator per interaction point
-  const gatorPoints = poseState.bodies.length > 0
-    ? poseState.bodies.map(b => b.bodyCenter)
-    : [{ x: mouseX, y: mouseY }];
+  const gatorPoints =
+    poseState.bodies.length > 0
+      ? poseState.bodies.map((b) => b.bodyCenter)
+      : [{ x: mouseX, y: mouseY }];
 
   if (prevGatorX !== null && gatorPoints[0].x !== prevGatorX) {
     gatorFacingRight = gatorPoints[0].x > prevGatorX;
   }
   prevGatorX = gatorPoints[0].x;
 
-  imageMode(CENTER);
+  pg.imageMode(pg.CENTER);
   for (const pt of gatorPoints) {
-    push();
-    translate(pt.x, pt.y);
-    if (!gatorFacingRight) scale(-1, 1);
-    image(gatorImg, 0, 0, 120, 80);
-    pop();
+    pg.push();
+    pg.translate(pt.x, pt.y);
+    if (!gatorFacingRight) pg.scale(-1, 1);
+    pg.image(gatorImg, 0, 0, 120, 80);
+    pg.pop();
   }
 }

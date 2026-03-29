@@ -7,32 +7,31 @@ const bird = {
   x: 0,
   y: 0,
 
-  display: function () {
+  display: function (pg) {
     if (this.imgs[this.imgIndex]) {
-      image(this.imgs[this.imgIndex], this.x, this.y);
+      pg.image(this.imgs[this.imgIndex], this.x, this.y);
     }
   },
 
-  displayBackward: function () {
-    push();
-    scale(-1, 1);
-    translate(-this.x - this.imgs[this.imgIndex].width, this.y);
+  displayBackward: function (pg) {
+    pg.push();
+    pg.scale(-1, 1);
+    pg.translate(-this.x - this.imgs[this.imgIndex].width, this.y);
     if (this.imgs[this.imgIndex]) {
-      image(this.imgs[this.imgIndex], 0, 0);
+      pg.image(this.imgs[this.imgIndex], 0, 0);
     }
-    pop();
+    pg.pop();
   },
 
-  update: function () {
+  update: function (pg) {
     // wrap around screen
     if (this.x < 0) {
-      this.x = width;
-    } else if (this.x > width * 2) {
+      this.x = pg.width;
+    } else if (this.x > pg.width * 2) {
       this.x = -500;
     }
 
-    const now = millis();
-
+    const now = pg.millis();
     // if currently paused, check if pause is over
     if (this.isPaused) {
       if (now - this.lastPauseTime > this.pauseTime) {
@@ -42,7 +41,7 @@ const bird = {
     }
 
     // normal animation
-    if (frameCount % 8 === 0) {
+    if (pg.frameCount % 8 === 0) {
       this.moveFrame(1);
       this.move(4);
     }

@@ -26,7 +26,7 @@ function loadLotusImgs() {
   }
 }
 
-function setupLotus() {
+function setupLotus(pg = scene2D) {
   // scale buds
   for (let i = 0; i < budImgs.length; i++) {
     const img = budImgs[i];
@@ -125,30 +125,32 @@ function setupLotus() {
       new LillyPad(img, id, x, y, sc * scFl, "lillypad", isFlipped),
     );
   }
-
 }
 
-function displayLotus() {
-  const ix = poseState.bodies.length > 0
-    ? poseState.bodies.reduce((sum, b) => sum + b.bodyCenter.x, 0) / poseState.bodies.length
-    : mouseX;
-  const windTarget = map(ix, 0, width, -0.2, 0.2);
-  lotusWind = lerp(lotusWind, windTarget, 0.05);
+function displayLotus(pg = scene2D) {
+  const ix =
+    poseState.bodies.length > 0
+      ? poseState.bodies.reduce((sum, b) => sum + b.bodyCenter.x, 0) /
+        poseState.bodies.length
+      : mouseX;
+  const windTarget = pg.map(ix, 0, pg.width, -0.2, 0.2);
+  lotusWind = pg.lerp(lotusWind, windTarget, 0.05);
 
-  push();
-  scale(0.56);
+  pg.push();
+  pg.scale(0.56);
   trees[1].display(500);
-  pop();
+  pg.pop();
 
   for (const plant of lotusPlantsFront) {
-    plant.display();
+    plant.display(pg);
     plant.update();
   }
 }
 
 class Plant {
-  constructor(img, id, x, y, scale, type, isFlipped = false) {
+  constructor(img, id, x, y, scale, type, isFlipped = false, pg = scene2D) {
     this.img = img;
+    this.pg = pg;
     this.x = x;
     this.y = y;
     this.scale = scale;
@@ -159,16 +161,16 @@ class Plant {
   }
 
   display() {
-    push();
-    translate(this.x, this.y);
-    rotate(this.rot);
-    scale(this.scale);
+    this.pg.push();
+    this.pg.translate(this.x, this.y);
+    this.pg.rotate(this.rot);
+    this.pg.scale(this.scale);
     if (this.isFlipped) {
-      scale(-1, 1);
-      translate(-this.img.width, 0);
+      this.pg.scale(-1, 1);
+      this.pg.translate(-this.img.width, 0);
     }
-    image(this.img, 0, 0);
-    pop();
+    this.pg.image(this.img, 0, 0);
+    this.pg.pop();
   }
 
   update() {
@@ -178,8 +180,8 @@ class Plant {
 }
 
 class Flower extends Plant {
-  constructor(img, id, x, y, scale, type, isFlipped = false) {
-    super(img, id, x, y, scale, type, isFlipped);
+  constructor(img, id, x, y, scale, type, isFlipped = false, pg = scene2D) {
+    super(img, id, x, y, scale, type, isFlipped, pg);
 
     // 🔑 pivot in IMAGE space (before scaling)
     this.pivot = {
@@ -191,35 +193,41 @@ class Flower extends Plant {
     this.swaySpeed = 0.01;
   }
   display() {
-    push();
+    this.pg.push();
 
     // world position
-    translate(this.x, this.y);
+    this.pg.translate(this.x, this.y);
 
     // scale first so pivot math is clean
-    scale(this.scale);
+    this.pg.scale(this.scale);
     if (this.isFlipped) {
-      scale(-1, 1);
-      translate(-this.img.width, 0);
+      this.pg.scale(-1, 1);
+      this.pg.translate(-this.img.width, 0);
     }
 
     // move origin to pivot
-    translate(this.pivot.x, this.pivot.y);
+    this.pg.translate(this.pivot.x, this.pivot.y);
 
     // rotate around pivot
-    rotate(this.rot);
+    this.pg.rotate(this.rot);
 
     // move origin back
-    translate(-this.pivot.x, -this.pivot.y);
+    this.pg.translate(-this.pivot.x, -this.pivot.y);
 
     // draw image
-    image(this.img, 0, 0);
+    this.pg.image(this.img, 0, 0);
 
-    pop();
+    this.pg.pop();
   }
 
   update() {
-    const sway = map(noise(frameCount * 0.01 + this.x), 0, 1, -0.06, 0.06);
+    const sway = this.pg.map(
+      this.pg.noise(frameCount * 0.01 + this.x),
+      0,
+      1,
+      -0.06,
+      0.06,
+    );
     this.rot = lotusWind + sway;
   }
 }
@@ -227,28 +235,38 @@ class Flower extends Plant {
 class LillyPad extends Plant {
   // update different - make them bob on a sine wave
   update() {
-    this.y += sin(frameCount * 0.05 + this.x) * 0.2;
+    this.y += this.pg.sin(frameCount * 0.05 + this.x) * 0.2;
   }
 }
 
 class FlowerWithBud extends Flower {
-  constructor(img, budImgs, id, x, y, scale, type, isFlipped = false) {
-    super(img, id, x, y, scale, type, isFlipped);
+  constructor(
+    img,
+    budImgs,
+    id,
+    x,
+    y,
+    scale,
+    type,
+    isFlipped = false,
+    pg = scene2D,
+  ) {
+    super(img, id, x, y, scale, type, isFlipped, pg);
     this.budImgs = budImgs;
     this.budIndex = 0;
   }
 
   display() {
-    push();
-    translate(this.x, this.y);
-    scale(this.scale);
+    this.pg.push();
+    this.pg.translate(this.x, this.y);
+    this.pg.scale(this.scale);
     if (this.isFlipped) {
-      scale(-1, 1);
-      translate(-this.img.width, 0);
+      this.pg.scale(-1, 1);
+      this.pg.translate(-this.img.width, 0);
     }
-    image(this.img, 0, 0);
-    image(this.budImgs[this.budIndex], 0, 0);
-    pop();
+    this.pg.image(this.img, 0, 0);
+    this.pg.image(this.budImgs[this.budIndex], 0, 0);
+    this.pg.pop();
   }
 
   update() {

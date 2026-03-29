@@ -1,5 +1,5 @@
 // start at the beginning of pirogue scene, and play sequentially
-const START_SCENE_ID = "lotus";
+const START_SCENE_ID = "duckweed";
 
 let treeY = 0;
 const history1 = [
@@ -28,8 +28,8 @@ const scenes = [
     id: "intro",
     durationSeconds: 4,
     draw: displayTitle,
-    onEnter: () => {
-      textFont(font);
+    onEnter: (pg) => {
+      pg.textFont(font);
     },
   },
   {
@@ -44,7 +44,7 @@ const scenes = [
     id: "birdBigTree1",
     durationSeconds: 15,
     draw: displayBirdBigTree1,
-    onEnter: () => {
+    onEnter: (pg) => {
       bird.x = 0;
     },
 
@@ -55,7 +55,7 @@ const scenes = [
     durationSeconds: 25,
     textCueDelaySeconds: 2,
     draw: displayPirogueBig,
-    onEnter: () => {
+    onEnter: (pg) => {
       xPosition = 0;
       pirogue.x = -400;
     },
@@ -86,9 +86,9 @@ const scenes = [
     id: "bigTreeQuestions",
     durationSeconds: 8,
     draw: displayBigTreeQuestions1,
-    onEnter: () => {
-      bird.x = width - 500;
-      bird.y = height / 2;
+    onEnter: (pg) => {
+      bird.x = pg.width - 500;
+      bird.y = pg.height / 2;
     },
   },
   {
@@ -100,9 +100,9 @@ const scenes = [
     id: "bigTreeQuestions3",
     durationSeconds: 4,
     draw: displayBigTreeQuestionsNo,
-    onExit: () => {
+    onExit: (pg) => {
       bird.x = 0;
-      bird.y = height - 180;
+      bird.y = pg.height - 180;
     },
   },
   {
@@ -110,7 +110,7 @@ const scenes = [
     durationSeconds: 20,
     draw: displayPirogue,
     textCues: [],
-    onEnter: () => {
+    onEnter: (pg) => {
       xPosition = 0;
       pirogue.x = 0;
     },
@@ -121,19 +121,19 @@ const scenes = [
 ];
 
 function displayTitle(pg) {
-  textAlign(CENTER, CENTER);
-  fill(255);
-  noStroke();
-  textSize(180);
-  text("Boscoyo", width / 2, height / 2 - 40);
+  pg.textAlign(CENTER, CENTER);
+  pg.fill(255);
+  pg.noStroke();
+  pg.textSize(180);
+  pg.text("Boscoyo", width / 2, height / 2 - 40);
 
-  textSize(44);
-  fill(200);
-  text("(Cypress Knees)", width / 2, height / 2 + 120);
+  pg.textSize(44);
+  pg.fill(200);
+  pg.text("(Cypress Knees)", width / 2, height / 2 + 120);
 }
 
 function displayTreeSpan(pg) {
-  textFont("monospace");
+  pg.textFont("monospace");
   xPosition -= 0.5;
 
   for (const tree of trees) {
@@ -142,77 +142,77 @@ function displayTreeSpan(pg) {
 }
 
 function displayPirogue(pg) {
-  textFont("monospace");
+  pg.textFont("monospace");
   xPosition--;
 
-  push();
-  scale(1.2);
-  pirogue.display();
-  pirogue.update();
+  pg.push();
+  pg.scale(1.2);
+  pirogue.display(pg);
+  pirogue.update(pg);
 
   for (const tree of trees) {
     tree.display(xPosition);
   }
-  pop();
+  pg.pop();
 }
 
 function displayPirogueBig(pg) {
-  textFont("monospace");
-  xPosition--;
+  pg.textFont("monospace");
+  xPosition -= 0.5;
   pirogue.y = 100;
 
-  push();
-  scale(2);
-  translate(0, -500);
+  pg.push();
+  pg.scale(2);
+  pg.translate(0, -500);
   trees[1].display(-600);
-  pop();
+  pg.pop();
 
-  push();
-  scale(1.5);
-  pirogue.display();
-  pirogue.update();
+  pg.push();
+  pg.scale(1.5);
+  pirogue.display(pg);
+  pirogue.update(pg);
   pirogue.move(1);
-  pop();
+  pg.pop();
 }
 
 function displayBirdBigTree1(pg) {
-  textFont("monospace");
-  push();
+  pg.textFont("monospace");
+  pg.push();
 
-  scale(1.6);
-  translate(0, -180);
-  trees[2].display(-width * 0.9);
-  pop();
+  pg.scale(1.6);
+  pg.translate(0, -180);
+  trees[2].display(-pg.width * 0.9);
+  pg.pop();
 
-  push();
-  bird.display();
-  bird.update();
-  pop();
+  pg.push();
+  bird.display(pg);
+  bird.update(pg);
+  pg.pop();
 }
 
 function displayQuestion(question, pg) {
   xPosition--;
-  textFont("monospace");
+  pg.textFont("monospace");
 
-  push();
-  fill(255);
-  textAlign(LEFT, CENTER);
-  textSize(54);
-  text(question, width / 2 + 50, 0, 550, 800);
-  pop();
+  pg.push();
+  pg.fill(255);
+  pg.textAlign(pg.LEFT, pg.CENTER);
+  pg.textSize(54);
+  pg.text(question, pg.width / 2 + 50, 0, 550, 800);
+  pg.pop();
 
-  push();
-  scale(1.8);
-  translate(0, -200);
+  pg.push();
+  pg.scale(1.8);
+  pg.translate(0, -200);
   trees[1].display(-1000);
-  pop();
+  pg.pop();
 
-  push();
-  scale(1.4);
-  bird.displayBackward();
-  bird.update();
+  pg.push();
+  pg.scale(1.4);
+  bird.displayBackward(pg);
+  bird.update(pg);
   bird.move(-1);
-  pop();
+  pg.pop();
 }
 
 function displayBigTreeQuestions1(pg) {
@@ -232,6 +232,7 @@ class SceneDirector {
     this.rawScenes = scenes;
     this.scenes = compileScenesByDuration(scenes);
     this.startAtSceneId = startAtSceneId;
+    this.pg = pg;
 
     this.totalMs = this.scenes.length
       ? this.scenes[this.scenes.length - 1].endMs
@@ -265,7 +266,7 @@ class SceneDirector {
     }
   }
 
-  goToScene(sceneId, { localSeconds = 0 } = {}, pg) {
+  goToScene(sceneId, { localSeconds = 0 } = {}, pg = this.pg) {
     const idx = this.scenes.findIndex((s) => s.id === sceneId);
     if (idx === -1) return;
 
@@ -318,7 +319,7 @@ class SceneDirector {
     this.text.done = true;
   }
 
-  _startSceneText(pg, scene) {
+  _startSceneText(pg = this.pg, scene) {
     const raw = scene.textCues ?? [];
     if (!raw.length) {
       this._resetText();
@@ -331,7 +332,7 @@ class SceneDirector {
     pg.push();
     pg.textFont("monospace");
     pg.textSize(isQuestion ? 54 : 30);
-    const wrapWidth = isQuestion ? 550 : width - 60;
+    const wrapWidth = isQuestion ? 550 : pg.width - 60;
     const wrapped = raw.map((s) => wrapPhraseToWidth(pg, s, wrapWidth));
     pg.pop();
 
@@ -349,17 +350,15 @@ class SceneDirector {
     this.text.holdTimer = 0;
   }
 
-  _setActive(index, pg) {
+  _setActive(index, pg = this.pg) {
     if (index === this.activeIndex) return;
 
     const prev = this.scenes[this.activeIndex];
-    if (prev?.onExit) prev.onExit();
-
+    if (prev?.onExit) prev.onExit(pg);
     this.activeIndex = index;
 
     const next = this.scenes[this.activeIndex];
-    if (next?.onEnter) next.onEnter();
-
+    if (next?.onEnter) next.onEnter(pg);
     // start text for the new scene
     this._startSceneText(pg, next);
   }
@@ -416,7 +415,7 @@ class SceneDirector {
     }
   }
 
-  update(dtMs, pg) {
+  update(dtMs, pg = this.pg) {
     if (!this.totalMs) return;
 
     this.t += dtMs;
@@ -466,7 +465,7 @@ class SceneDirector {
     this._updateText(dtMs);
   }
 
-  _drawText(pg) {
+  _drawText(pg = this.pg) {
     if (!this.text.active) return;
 
     const full = this.text.cuesWrapped[this.text.index];
@@ -480,20 +479,20 @@ class SceneDirector {
     pg.textFont("monospace");
 
     if (this.text.type === "question") {
-      pg.textAlign(LEFT, CENTER);
+      pg.textAlign(pg.LEFT, pg.CENTER);
       pg.textSize(54);
       pg.text(visible, 120, 0, 550, 800);
     } else {
-      pg.textAlign(LEFT, TOP);
+      pg.textAlign(pg.LEFT, pg.TOP);
       pg.textSize(30);
-      pg.translate(30, height - 50);
+      pg.translate(30, pg.height - 50);
       pg.text(visible, 0, 0);
     }
 
     pg.pop();
   }
 
-  draw(pg) {
+  draw(pg = this.pg) {
     const active = this.scenes[this.activeIndex];
     if (!active) return;
 

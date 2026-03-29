@@ -1,9 +1,9 @@
 let cypressId = 0;
 
 class Cypress {
-  constructor(x, img, treeScale, mossLocations) {
+  constructor(x, img, treeScale, mossLocations, pg = scene2D) {
     this.id = cypressId++;
-
+    this.pg = pg;
     this.img = img;
     this.x = x;
     this.startX = x;
@@ -25,33 +25,33 @@ class Cypress {
     this.mossBushes = [];
     for (const loc of mossLocations) {
       this.mossBushes.push(
-        new MossBush(loc.x, loc.y, loc.numSegments, loc.mossScale)
+        new MossBush(loc.x, loc.y, loc.numSegments, loc.mossScale, this.pg),
       );
     }
   }
 
   display(xPosition) {
-    push();
+    this.pg.push();
 
     // move to this tree's base point
-    translate(this.x + xPosition, this.y);
+    this.pg.translate(this.x + xPosition, this.y);
 
     // scale the whole tree (and moss)
-    scale(this.treeScale, this.treeScale);
+    this.pg.scale(this.treeScale, this.treeScale);
 
     // draw tree at original size so scale() does all the work
-    image(this.img, 0, 0);
+    this.pg.image(this.img, 0, 0);
 
     const updatePhysics = frameCount % 2 === 0;
     this.mossBushes.forEach((mossBush) => {
-      push();
-      translate(mossBush.localX, mossBush.localY);
+      this.pg.push();
+      this.pg.translate(mossBush.localX, mossBush.localY);
       mossBush.display();
-      pop();
+      this.pg.pop();
 
       if (updatePhysics) mossBush.update(0.5);
     });
 
-    pop();
+    this.pg.pop();
   }
 }

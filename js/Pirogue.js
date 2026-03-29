@@ -12,14 +12,14 @@ const pirogue = {
   reset: function () {
     this.x = startX;
   },
-  display: function () {
+  display: function (pg) {
     if (this.imgs[this.imgIndex]) {
-      image(this.imgs[this.imgIndex], this.x, this.y);
+      pg.image(this.imgs[this.imgIndex], this.x, this.y);
     }
   },
 
-  update: function () {
-    const now = millis();
+  update: function (pg) {
+    const now = pg.millis();
 
     // if currently paused, check if pause is over
     if (this.isPaused) {
@@ -30,7 +30,7 @@ const pirogue = {
     }
 
     // normal animation
-    if (frameCount % 20 === 0) {
+    if (pg.frameCount % 20 === 0) {
       this.moveFrame(1);
     }
   },
