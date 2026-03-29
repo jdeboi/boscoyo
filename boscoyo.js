@@ -10,11 +10,13 @@ let lastFPSTime = 0;
 let lastRenderCount = 0;
 let lastPoseCount = 0;
 
+let mappedSurface;
+
 let poseReady = false;
 
 const poseState = {
   active: false,
-  bodies: [],          // all detected people
+  bodies: [], // all detected people
   // first body mirrored here for backwards compat
   nose: null,
   leftWrist: null,
@@ -41,7 +43,10 @@ let director;
 const trees = [];
 
 function preload() {
-  bodyPose = ml5.bodyPose("MoveNet", { flipped: true, modelType: "MULTIPOSE_LIGHTNING" });
+  bodyPose = ml5.bodyPose("MoveNet", {
+    flipped: true,
+    modelType: "MULTIPOSE_LIGHTNING",
+  });
   gatorImg = loadImage("./assets/gator.png");
   loadLotusImgs();
   treeImg = loadImage("./assets/tree.png");
@@ -73,7 +78,7 @@ function initPoseSystem() {
 
 function setup() {
   pixelDensity(1);
-  const c = createCanvas(windowWidth, windowHeight);
+  const c = createCanvas(windowWidth, windowHeight, WEBGL);
   c.position(0, 0);
   c.style("position", "fixed");
   c.style("left", "0");
@@ -105,6 +110,9 @@ function setup() {
   setupMossScene();
   setupPirogueScene();
 
+  initProjectionMapper();
+  pMapper.load("maps/map.json");
+
   setStatus("Ready. Click Start Camera.");
 }
 function draw() {
@@ -121,7 +129,7 @@ function draw() {
   const activeSceneId = director.scenes[director.activeIndex]?.id;
   const scenesWithoutStars = ["duckweed", "moss", "pirogueScene"];
   if (!scenesWithoutStars.includes(activeSceneId)) drawStars();
-  noCursor();
+  // noCursor();
 
   director.update(deltaTime, this);
   director.draw(this);
@@ -129,6 +137,13 @@ function draw() {
   if (debugMode) debugPose();
 
   pop();
+
+  if (mappedSurface) {
+    const frameTexture = get();
+    background(0);
+    mappedSurface.displayTexture(frameTexture);
+  }
+
   displayFrameRate();
 }
 
@@ -150,8 +165,11 @@ function displayFrameRate() {
   noStroke();
   textSize(20);
 
+  push();
+  translate(-width / 2, -height / 2);
   text(`render FPS: ${renderFPS}`, width - 200, 150);
   text(`pose FPS: ${poseFPS}`, width - 200, 180);
+  pop();
 }
 
 function debugPose() {
@@ -165,13 +183,16 @@ function debugPose() {
   text(`pose active: ${poseState.active}`, 20, 120);
   text(`poses: ${mlPoses.length}`, 20, 150);
 
-  if (!poseState.active) { pop(); return; }
+  if (!poseState.active) {
+    pop();
+    return;
+  }
 
   const landmarks = [
-    { pt: poseState.nose,        label: "nose",         col: [255, 80, 80] },
-    { pt: poseState.leftWrist,   label: "left wrist",   col: [80, 255, 80] },
-    { pt: poseState.rightWrist,  label: "right wrist",  col: [80, 180, 255] },
-    { pt: poseState.bodyCenter,  label: "body center",  col: [255, 255, 80] },
+    { pt: poseState.nose, label: "nose", col: [255, 80, 80] },
+    { pt: poseState.leftWrist, label: "left wrist", col: [80, 255, 80] },
+    { pt: poseState.rightWrist, label: "right wrist", col: [80, 180, 255] },
+    { pt: poseState.bodyCenter, label: "body center", col: [255, 255, 80] },
   ];
 
   for (const { pt, label, col } of landmarks) {
@@ -346,8 +367,8 @@ function dist2D(a, b) {
   return dist(a.x, a.y, b.x, b.y);
 }
 
-const POSE_SMOOTH = 0.25;       // 0 = frozen, 1 = no smoothing
-const POSE_HOLD_MS = 1000;      // keep last position this long after detection drops
+const POSE_SMOOTH = 0.25; // 0 = frozen, 1 = no smoothing
+const POSE_HOLD_MS = 1000; // keep last position this long after detection drops
 const POSE_MIN_VISIBILITY = 0.5; // landmarks below this are treated as absent
 let lastPoseDetectedTime = 0;
 
@@ -378,28 +399,39 @@ function updatePoseState() {
     const kp = {};
     for (const k of pose.keypoints) kp[k.name] = k;
 
-    const leftShoulder  = kp["left_shoulder"];
+    const leftShoulder = kp["left_shoulder"];
     const rightShoulder = kp["right_shoulder"];
-    if (!leftShoulder || !rightShoulder ||
-        leftShoulder.score < POSE_MIN_VISIBILITY ||
-        rightShoulder.score < POSE_MIN_VISIBILITY) continue;
+    if (
+      !leftShoulder ||
+      !rightShoulder ||
+      leftShoulder.score < POSE_MIN_VISIBILITY ||
+      rightShoulder.score < POSE_MIN_VISIBILITY
+    )
+      continue;
 
-    const prev        = poseState.bodies[i] ?? {};
-    const nose        = kp["nose"];
-    const leftWrist   = kp["left_wrist"];
-    const rightWrist  = kp["right_wrist"];
+    const prev = poseState.bodies[i] ?? {};
+    const nose = kp["nose"];
+    const leftWrist = kp["left_wrist"];
+    const rightWrist = kp["right_wrist"];
 
-    const sLS = smoothLandmark(prev.leftShoulder,  scaleLandmark(leftShoulder));
-    const sRS = smoothLandmark(prev.rightShoulder, scaleLandmark(rightShoulder));
+    const sLS = smoothLandmark(prev.leftShoulder, scaleLandmark(leftShoulder));
+    const sRS = smoothLandmark(
+      prev.rightShoulder,
+      scaleLandmark(rightShoulder),
+    );
 
     const body = {
-      nose:          nose       ? smoothLandmark(prev.nose,        scaleLandmark(nose))       : null,
-      leftShoulder:  sLS,
+      nose: nose ? smoothLandmark(prev.nose, scaleLandmark(nose)) : null,
+      leftShoulder: sLS,
       rightShoulder: sRS,
-      leftWrist:     leftWrist  ? smoothLandmark(prev.leftWrist,   scaleLandmark(leftWrist))  : null,
-      rightWrist:    rightWrist ? smoothLandmark(prev.rightWrist,  scaleLandmark(rightWrist)) : null,
-      bodyCenter:    midpoint(sLS, sRS),
-      handSpan:      0,
+      leftWrist: leftWrist
+        ? smoothLandmark(prev.leftWrist, scaleLandmark(leftWrist))
+        : null,
+      rightWrist: rightWrist
+        ? smoothLandmark(prev.rightWrist, scaleLandmark(rightWrist))
+        : null,
+      bodyCenter: midpoint(sLS, sRS),
+      handSpan: 0,
     };
     if (body.leftWrist && body.rightWrist) {
       body.handSpan = dist2D(body.leftWrist, body.rightWrist);
@@ -421,17 +453,18 @@ function updatePoseState() {
 
   // mirror first body onto top-level fields for backwards compat
   const first = newBodies[0];
-  poseState.nose          = first.nose;
-  poseState.leftShoulder  = first.leftShoulder;
+  poseState.nose = first.nose;
+  poseState.leftShoulder = first.leftShoulder;
   poseState.rightShoulder = first.rightShoulder;
-  poseState.leftWrist     = first.leftWrist;
-  poseState.rightWrist    = first.rightWrist;
-  poseState.bodyCenter    = first.bodyCenter;
-  poseState.handSpan      = first.handSpan;
+  poseState.leftWrist = first.leftWrist;
+  poseState.rightWrist = first.rightWrist;
+  poseState.bodyCenter = first.bodyCenter;
+  poseState.handSpan = first.handSpan;
 }
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+  recreateProjectionSurface();
 }
 
 const startBtn = document.getElementById("startBtn");
@@ -445,4 +478,14 @@ if (startBtn) {
     startBtn.disabled = true;
     initPoseSystem();
   });
+}
+
+function initProjectionMapper() {
+  pMapper = createProjectionMapper(this);
+  mappedSurface = pMapper.createQuadMap(width, height, 8);
+}
+
+function recreateProjectionSurface() {
+  if (!mappedSurface) return;
+  mappedSurface.setSize(width, height);
 }
