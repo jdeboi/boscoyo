@@ -9,8 +9,15 @@ function displaySk2(pg) {
   const scaledX = (bodyX - pg.width / 2) * 2 + pg.width / 2; // 2x amplification around center
   const targetX = pg.width - scaledX; // counteract shouldInvert transform applied by SceneDirector
 
+  const img = pirogue.imgs[pirogue.imgIndex];
+  const halfW = img ? (img.width * SC) / 2 : 0;
+
   const prevX = sk2PirogueX;
-  sk2PirogueX = pg.lerp(sk2PirogueX, targetX, 0.04);
+  sk2PirogueX = pg.constrain(
+    pg.lerp(sk2PirogueX, targetX, 0.04),
+    halfW,
+    pg.width - halfW
+  );
 
   if (pg.abs(sk2PirogueX - prevX) > 0.1) {
     sk2FacingRight = sk2PirogueX > prevX;
