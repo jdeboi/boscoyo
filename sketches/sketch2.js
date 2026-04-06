@@ -6,7 +6,8 @@ let sk2FacingRight = true;
 function displaySk2(pg) {
   const SC = 2;
   const bodyX = poseState.bodies.length > 0 ? poseState.bodies[0].bodyCenter.x : mouseX;
-  const targetX = pg.width - bodyX; // counteract shouldInvert transform applied by SceneDirector
+  const scaledX = (bodyX - pg.width / 2) * 2 + pg.width / 2; // 2x amplification around center
+  const targetX = pg.width - scaledX; // counteract shouldInvert transform applied by SceneDirector
 
   const prevX = sk2PirogueX;
   sk2PirogueX = pg.lerp(sk2PirogueX, targetX, 0.04);
