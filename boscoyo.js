@@ -560,17 +560,29 @@ function initSync() {
       director.goToScene(msg.sceneId, { localSeconds: msg.localMs / 1000 });
       lastSyncedSceneIndex = director.activeIndex;
     } else if (msg.type === "pose") {
+      const sx = msg.senderWidth  ? width  / msg.senderWidth  : 1;
+      const sy = msg.senderHeight ? height / msg.senderHeight : 1;
+      const scalePoint = (pt) => pt ? { ...pt, x: pt.x * sx, y: pt.y * sy } : null;
       poseState.active = msg.active;
-      poseState.bodies = msg.bodies;
-      const first = msg.bodies[0];
+      poseState.bodies = msg.bodies.map((b) => ({
+        ...b,
+        bodyCenter:     scalePoint(b.bodyCenter),
+        nose:           scalePoint(b.nose),
+        leftShoulder:   scalePoint(b.leftShoulder),
+        rightShoulder:  scalePoint(b.rightShoulder),
+        leftWrist:      scalePoint(b.leftWrist),
+        rightWrist:     scalePoint(b.rightWrist),
+        handSpan:       b.handSpan * sx,
+      }));
+      const first = poseState.bodies[0];
       if (first) {
-        poseState.nose = first.nose;
-        poseState.leftShoulder = first.leftShoulder;
+        poseState.nose          = first.nose;
+        poseState.leftShoulder  = first.leftShoulder;
         poseState.rightShoulder = first.rightShoulder;
-        poseState.leftWrist = first.leftWrist;
-        poseState.rightWrist = first.rightWrist;
-        poseState.bodyCenter = first.bodyCenter;
-        poseState.handSpan = first.handSpan;
+        poseState.leftWrist     = first.leftWrist;
+        poseState.rightWrist    = first.rightWrist;
+        poseState.bodyCenter    = first.bodyCenter;
+        poseState.handSpan      = first.handSpan;
       }
     }
   };
@@ -588,6 +600,8 @@ function sendPoseSync() {
       type: "pose",
       active: poseState.active,
       bodies: poseState.bodies,
+      senderWidth: width,
+      senderHeight: height,
     }),
   );
 }
