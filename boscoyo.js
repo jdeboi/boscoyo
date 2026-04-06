@@ -82,6 +82,7 @@ function initPoseSystem() {
       setStatus("Pose system ready");
     }
     updatePoseState();
+    sendPoseSync();
   });
 }
 
@@ -532,8 +533,30 @@ function initSync() {
     if (msg.type === "scene") {
       director.goToScene(msg.sceneId, { localSeconds: msg.localMs / 1000 });
       lastSyncedSceneIndex = director.activeIndex;
+    } else if (msg.type === "pose") {
+      poseState.active = msg.active;
+      poseState.bodies = msg.bodies;
+      const first = msg.bodies[0];
+      if (first) {
+        poseState.nose          = first.nose;
+        poseState.leftShoulder  = first.leftShoulder;
+        poseState.rightShoulder = first.rightShoulder;
+        poseState.leftWrist     = first.leftWrist;
+        poseState.rightWrist    = first.rightWrist;
+        poseState.bodyCenter    = first.bodyCenter;
+        poseState.handSpan      = first.handSpan;
+      }
     }
   };
+}
+
+function sendPoseSync() {
+  if (syncRole !== "leader" || !syncSocket || syncSocket.readyState !== WebSocket.OPEN) return;
+  syncSocket.send(JSON.stringify({
+    type: "pose",
+    active: poseState.active,
+    bodies: poseState.bodies,
+  }));
 }
 
 function sendSceneSync() {
