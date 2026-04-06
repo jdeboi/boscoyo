@@ -4,9 +4,9 @@ let sk2PirogueX = 0;
 let sk2FacingRight = true;
 
 function displaySk2(pg) {
-  const SC = 1.2;
-  const targetX =
-    poseState.bodies.length > 0 ? poseState.bodies[0].bodyCenter.x : mouseX;
+  const SC = 2;
+  const bodyX = poseState.bodies.length > 0 ? poseState.bodies[0].bodyCenter.x : mouseX;
+  const targetX = pg.width - bodyX; // counteract shouldInvert transform applied by SceneDirector
 
   const prevX = sk2PirogueX;
   sk2PirogueX = pg.lerp(sk2PirogueX, targetX, 0.04);
@@ -20,7 +20,7 @@ function displaySk2(pg) {
   pg.push();
   pg.imageMode(pg.CENTER);
   // pin to bottom: pirogue imgs are resized to h=500, so half-height at SC
-  pg.translate(sk2PirogueX, pg.height - (500 * SC) / 2);
+  pg.translate(sk2PirogueX, pg.height - (500 * SC) / 2 + 50);
   if (!sk2FacingRight) pg.scale(-1, 1);
   pg.scale(SC);
   if (pirogue.imgs[pirogue.imgIndex]) {
