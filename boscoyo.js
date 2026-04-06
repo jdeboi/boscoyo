@@ -138,7 +138,7 @@ function draw() {
   scene2D.background(0);
 
   const activeSceneId = director.scenes[director.activeIndex]?.id;
-  const scenesWithoutStars = ["duckweed", "moss", "pirogueScene"];
+  const scenesWithoutStars = ["duckweed", "moss", "pirogueScene", "pirogueOnly"];
   if (!scenesWithoutStars.includes(activeSceneId)) drawStars(scene2D);
   // noCursor();
 
