@@ -128,7 +128,7 @@ function setup() {
   pMapper.load("maps/map.json");
   initSync();
 
-  setStatus("Ready. Click Start Camera.");
+  if (syncRole === "leader") initPoseSystem();
 }
 function draw() {
   if (mouseMode && syncRole !== "follower") {
