@@ -40,7 +40,8 @@ let moveForward = false;
 let shouldInvert = true;
 let debugMode = true;
 let previewMode = true;
-let mouseMode = true; // send mouse position as body; toggle with 'm'
+let mouseMode = true;    // toggle with 'm'
+let invertPoseX = true;  // mirror pose X coords; toggle with 'x'
 
 // --- sync ---
 const SYNC_SERVER_URL = `ws://${location.host}`;
@@ -342,6 +343,9 @@ function keyPressed() {
     case "m":
       mouseMode = !mouseMode;
       break;
+    case "x":
+      invertPoseX = !invertPoseX;
+      break;
     case "p":
       previewMode = !previewMode;
       break;
@@ -409,8 +413,9 @@ function initTrees(pg = scene2D) {
 }
 function scaleLandmark(kp) {
   // ml5 returns pixel coords in video space; scale to canvas
+  const x = kp.x * (width / mlVideo.width);
   return {
-    x: kp.x * (width / mlVideo.width),
+    x: invertPoseX ? width - x : x,
     y: kp.y * (height / mlVideo.height),
     z: kp.z ?? 0,
     visibility: kp.score ?? 1,
