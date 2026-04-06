@@ -23,7 +23,7 @@ function displayPirogueScene(pg) {
     pirogueFollowerFacingRight = pirogueFollowerX > prevX;
   }
 
-  pirogue.update(pg);
+  pirogue.update();
 
   pg.push();
   pg.imageMode(CENTER);

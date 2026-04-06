@@ -127,7 +127,7 @@ function displayPirogue(pg) {
   pg.push();
   pg.scale(1.2);
   pirogue.display(pg);
-  pirogue.update(pg);
+  pirogue.update();
 
   for (const tree of trees) {
     tree.display(xPosition);
@@ -149,7 +149,7 @@ function displayPirogueBig(pg) {
   pg.push();
   pg.scale(1.5);
   pirogue.display(pg);
-  pirogue.update(pg);
+  pirogue.update();
   pirogue.move(1);
   pg.pop();
 }

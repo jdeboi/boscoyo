@@ -4,7 +4,7 @@ let sk2PirogueX = 0;
 let sk2FacingRight = true;
 
 function displaySk2(pg) {
-  const SC = 0.5;
+  const SC = 1.2;
   const targetX =
     poseState.bodies.length > 0 ? poseState.bodies[0].bodyCenter.x : mouseX;
 
@@ -15,7 +15,7 @@ function displaySk2(pg) {
     sk2FacingRight = sk2PirogueX > prevX;
   }
 
-  pirogue.update(pg);
+  pirogue.update();
 
   pg.push();
   pg.imageMode(pg.CENTER);

@@ -21,8 +21,8 @@ const pirogue = {
     }
   },
 
-  update: function (pg) {
-    const now = pg.millis();
+  update: function () {
+    const now = millis();
 
     // if currently paused, check if pause is over
     if (this.isPaused) {
