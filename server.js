@@ -43,7 +43,7 @@ wss.on("connection", (ws) => {
   ws.on("message", (data) => {
     for (const client of wss.clients) {
       if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(data);
+        client.send(data.toString());
       }
     }
   });
