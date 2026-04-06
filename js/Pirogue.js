@@ -1,11 +1,14 @@
 const startX = 50;
 
+const PIROGUE_FPS = 4;
+
 const pirogue = {
   imgs: [],
   imgIndex: 0,
   isPaused: false,
   pauseTime: 2000, // ms
   lastPauseTime: 0, // ms
+  lastFrameTime: 0, // ms
   x: startX,
   y: 0,
 
@@ -29,9 +32,10 @@ const pirogue = {
       return; // don’t animate while paused
     }
 
-    // normal animation
-    if (pg.frameCount % 20 === 0) {
+    // time-based animation
+    if (now - this.lastFrameTime > 1000 / PIROGUE_FPS) {
       this.moveFrame(1);
+      this.lastFrameTime = now;
     }
   },
 
