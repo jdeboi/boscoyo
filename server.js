@@ -15,10 +15,17 @@ const MIME = {
   ".ttf":  "font/ttf",
 };
 
+const ROUTES = {
+  "/":       "index.html",
+  "/sketch1": "index.html",
+  "/sketch2": "sketch2.html",
+  "/sketch3": "sketch3.html",
+};
+
 // Static file server
 const server = http.createServer((req, res) => {
   const pathname = new URL(req.url, "http://localhost").pathname;
-  const filePath = path.join(__dirname, pathname === "/" ? "index.html" : pathname);
+  const filePath = path.join(__dirname, ROUTES[pathname] ?? pathname);
   fs.readFile(filePath, (err, data) => {
     if (err) { res.writeHead(404); res.end("Not found"); return; }
     const ext = path.extname(filePath);
