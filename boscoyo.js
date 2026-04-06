@@ -14,7 +14,7 @@ let mappedSurface1, mappedSurface2;
 let scene2D;
 
 let poseReady = false;
-const drawOutline = true;
+const drawOutline = false;
 
 const poseState = {
   active: false,
@@ -40,6 +40,7 @@ let moveForward = false;
 let shouldInvert = true;
 let debugMode = true;
 let previewMode = true;
+let mouseMode = true; // send mouse position as body; toggle with 'm'
 
 // --- sync ---
 const SYNC_SERVER_URL = `ws://${location.host}`;
@@ -130,6 +131,18 @@ function setup() {
   setStatus("Ready. Click Start Camera.");
 }
 function draw() {
+  if (mouseMode && syncRole !== "follower") {
+    const mouseBody = {
+      bodyCenter: { x: mouseX, y: mouseY },
+      nose: null, leftShoulder: null, rightShoulder: null,
+      leftWrist: null, rightWrist: null, handSpan: 0,
+    };
+    poseState.active = true;
+    poseState.bodies = [mouseBody];
+    poseState.bodyCenter = mouseBody.bodyCenter;
+    if (syncRole === "leader") sendPoseSync();
+  }
+
   background(0);
   renderFrameCount++;
   push();
@@ -138,7 +151,12 @@ function draw() {
   scene2D.background(0);
 
   const activeSceneId = director.scenes[director.activeIndex]?.id;
-  const scenesWithoutStars = ["duckweed", "moss", "pirogueScene", "pirogueOnly"];
+  const scenesWithoutStars = [
+    "duckweed",
+    "moss",
+    "pirogueScene",
+    "pirogueOnly",
+  ];
   if (!scenesWithoutStars.includes(activeSceneId)) drawStars(scene2D);
   // noCursor();
 
@@ -320,6 +338,9 @@ function keyPressed() {
       break;
     case "d":
       debugMode = !debugMode;
+      break;
+    case "m":
+      mouseMode = !mouseMode;
       break;
     case "p":
       previewMode = !previewMode;
@@ -538,25 +559,32 @@ function initSync() {
       poseState.bodies = msg.bodies;
       const first = msg.bodies[0];
       if (first) {
-        poseState.nose          = first.nose;
-        poseState.leftShoulder  = first.leftShoulder;
+        poseState.nose = first.nose;
+        poseState.leftShoulder = first.leftShoulder;
         poseState.rightShoulder = first.rightShoulder;
-        poseState.leftWrist     = first.leftWrist;
-        poseState.rightWrist    = first.rightWrist;
-        poseState.bodyCenter    = first.bodyCenter;
-        poseState.handSpan      = first.handSpan;
+        poseState.leftWrist = first.leftWrist;
+        poseState.rightWrist = first.rightWrist;
+        poseState.bodyCenter = first.bodyCenter;
+        poseState.handSpan = first.handSpan;
       }
     }
   };
 }
 
 function sendPoseSync() {
-  if (syncRole !== "leader" || !syncSocket || syncSocket.readyState !== WebSocket.OPEN) return;
-  syncSocket.send(JSON.stringify({
-    type: "pose",
-    active: poseState.active,
-    bodies: poseState.bodies,
-  }));
+  if (
+    syncRole !== "leader" ||
+    !syncSocket ||
+    syncSocket.readyState !== WebSocket.OPEN
+  )
+    return;
+  syncSocket.send(
+    JSON.stringify({
+      type: "pose",
+      active: poseState.active,
+      bodies: poseState.bodies,
+    }),
+  );
 }
 
 function sendSceneSync() {
