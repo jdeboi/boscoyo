@@ -10,10 +10,11 @@ let lastFPSTime = 0;
 let lastRenderCount = 0;
 let lastPoseCount = 0;
 
-let mappedSurface;
+let mappedSurface1, mappedSurface2;
 let scene2D;
 
 let poseReady = false;
+const drawOutline = true;
 
 const poseState = {
   active: false,
@@ -36,8 +37,15 @@ let font;
 let stars = [];
 let pMapper;
 let moveForward = false;
-let shouldInvert = false;
+let shouldInvert = true;
 let debugMode = true;
+let previewMode = true;
+
+// --- sync ---
+const SYNC_SERVER_URL = `ws://${location.host}`;
+const syncRole = new URLSearchParams(location.search).get("role"); // "leader" | "follower"
+let syncSocket = null;
+let lastSyncedSceneIndex = -1;
 
 let director;
 
@@ -48,7 +56,7 @@ function preload() {
     flipped: true,
     modelType: "MULTIPOSE_LIGHTNING",
   });
-  gatorImg = loadImage("./assets/gator.png");
+  gatorImg = loadImage("./assets/Gator1.png");
   loadLotusImgs();
   treeImg = loadImage("./assets/tree.png");
   treeImg2 = loadImage("./assets/jotree.png");
@@ -109,13 +117,14 @@ function setup() {
 
   initTrees(scene2D);
   initBird(scene2D);
-  setupLotus(scene2D);
-  setupDuckweed(scene2D);
+  setupLotus();
+  setupDuckweed();
   setupMossScene(scene2D);
   setupPirogueScene(scene2D);
 
   initProjectionMapper();
   pMapper.load("maps/map.json");
+  initSync();
 
   setStatus("Ready. Click Start Camera.");
 }
@@ -123,14 +132,8 @@ function draw() {
   background(0);
   renderFrameCount++;
   push();
-  if (shouldInvert) {
-    scale(-1, 1);
-    translate(-width, 0);
-  }
 
   scene2D.push();
-  scene2D.clear();
-
   scene2D.background(0);
 
   const activeSceneId = director.scenes[director.activeIndex]?.id;
@@ -141,11 +144,30 @@ function draw() {
   director.update(deltaTime, scene2D);
   director.draw(scene2D);
 
+  if (syncRole === "leader" && director.activeIndex !== lastSyncedSceneIndex) {
+    lastSyncedSceneIndex = director.activeIndex;
+    sendSceneSync();
+  }
+
   if (debugMode) debugPose(scene2D);
+
+  if (drawOutline) {
+    scene2D.push();
+    scene2D.noFill();
+    scene2D.stroke(255);
+    scene2D.strokeWeight(10);
+    scene2D.rect(0, 0, scene2D.width, scene2D.height);
+    scene2D.pop();
+  }
 
   scene2D.pop();
 
-  mappedSurface.displayTexture(scene2D);
+  if (previewMode) {
+    image(scene2D, -width / 2, -height / 2, width, height);
+  } else {
+    mappedSurface1.displayTexture(scene2D, 0, 0, width / 2, height);
+    mappedSurface2.displayTexture(scene2D, width / 2, 0, width / 2, height);
+  }
   displayFrameRate();
   pop();
 }
@@ -163,6 +185,7 @@ function updateFPS() {
   }
 }
 function displayFrameRate() {
+  if (!debugMode) return;
   updateFPS();
   fill("red");
   noStroke();
@@ -297,6 +320,9 @@ function keyPressed() {
     case "d":
       debugMode = !debugMode;
       break;
+    case "p":
+      previewMode = !previewMode;
+      break;
     case "c":
       pMapper.toggleCalibration();
       break;
@@ -311,6 +337,18 @@ function keyPressed() {
     case "s":
       pMapper.save("map.json");
       break;
+    case "ArrowRight": {
+      const next = (director.activeIndex + 1) % director.scenes.length;
+      director.goToScene(director.scenes[next].id);
+      return false;
+    }
+    case "ArrowLeft": {
+      const prev =
+        (director.activeIndex - 1 + director.scenes.length) %
+        director.scenes.length;
+      director.goToScene(director.scenes[prev].id);
+      return false;
+    }
   }
 }
 
@@ -465,7 +503,6 @@ function updatePoseState() {
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
-  // scene2D.resizeCanvas(windowWidth, windowHeight);
   recreateProjectionSurface();
 }
 
@@ -482,12 +519,49 @@ if (startBtn) {
   });
 }
 
+function initSync() {
+  if (!syncRole) return;
+  syncSocket = new WebSocket(SYNC_SERVER_URL);
+
+  syncSocket.onopen = () => console.log(`sync connected as ${syncRole}`);
+  syncSocket.onerror = (e) => console.warn("sync error", e);
+
+  syncSocket.onmessage = ({ data }) => {
+    if (syncRole !== "follower") return;
+    const msg = JSON.parse(data);
+    if (msg.type === "scene") {
+      director.goToScene(msg.sceneId, { localSeconds: msg.localMs / 1000 });
+      lastSyncedSceneIndex = director.activeIndex;
+    }
+  };
+}
+
+function sendSceneSync() {
+  if (
+    syncRole !== "leader" ||
+    !syncSocket ||
+    syncSocket.readyState !== WebSocket.OPEN
+  )
+    return;
+  const active = director.scenes[director.activeIndex];
+  if (!active) return;
+  syncSocket.send(
+    JSON.stringify({
+      type: "scene",
+      sceneId: active.id,
+      localMs: director.t - active.startMs,
+    }),
+  );
+}
+
 function initProjectionMapper() {
   pMapper = createProjectionMapper(this);
-  mappedSurface = pMapper.createQuadMap(width, height, 8);
+  mappedSurface1 = pMapper.createQuadMap(width / 2, height, 8);
+  mappedSurface2 = pMapper.createQuadMap(width / 2, height, 8);
 }
 
 function recreateProjectionSurface() {
-  if (!mappedSurface) return;
-  mappedSurface.setSize(width, height);
+  if (!mappedSurface1) return;
+  mappedSurface1.setSize(width / 2, height);
+  mappedSurface2.setSize(width / 2, height);
 }

@@ -26,7 +26,7 @@ function loadLotusImgs() {
   }
 }
 
-function setupLotus(pg = scene2D) {
+function setupLotus() {
   // scale buds
   for (let i = 0; i < budImgs.length; i++) {
     const img = budImgs[i];

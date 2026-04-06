@@ -58,7 +58,7 @@ function setupDuckweed() {
 }
 
 function displayDuckweed(pg = scene2D) {
-  pg.background(8, 18, 12);
+  pg.background(0);
 
   const repellers = [{ x: mouseX, y: mouseY, radius: 220, strength: 1.5 }];
   for (const body of poseState.bodies) {

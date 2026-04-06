@@ -22,7 +22,7 @@ function setupMossScene(pg) {
 }
 
 function displayMossScene(pg = scene2D) {
-  pg.background(8, 18, 12);
+  pg.background(0);
 
   for (const chain of mossSceneChains) {
     if (poseState.bodies.length > 0) {

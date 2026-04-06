@@ -8,7 +8,7 @@ function setupPirogueScene(pg) {
 }
 
 function displayPirogueScene(pg) {
-  pg.background(10, 20, 35);
+  pg.background(0);
 
   const target =
     poseState.bodies.length > 0
