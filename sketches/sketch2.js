@@ -1,4 +1,4 @@
-const START_SCENE_ID = "treeSpan";
+const START_SCENE_ID = "pirogueOnly";
 
 let sk2PirogueX = 0;
 let sk2FacingRight = true;
@@ -30,16 +30,4 @@ function displaySk2(pg) {
 }
 
 // Scene IDs and durations must match sketch1 for sync to work
-const scenes = [
-  { id: "treeSpan",         durationSeconds: 30, draw: displaySk2 },
-  { id: "birdBigTree1",     durationSeconds: 15, draw: displaySk2 },
-  { id: "pirogue",          durationSeconds: 25, draw: displaySk2 },
-  { id: "lotus",            durationSeconds: 20, draw: displaySk2 },
-  { id: "duckweed",         durationSeconds: 30, draw: displaySk2 },
-  { id: "moss",             durationSeconds: 30, draw: displaySk2 },
-  { id: "pirogueScene",     durationSeconds: 30, draw: displaySk2 },
-  { id: "bigTreeQuestions",  durationSeconds: 8,  draw: displaySk2 },
-  { id: "bigTreeQuestions2", durationSeconds: 8,  draw: displaySk2 },
-  { id: "bigTreeQuestions3", durationSeconds: 4,  draw: displaySk2 },
-  { id: "treesAndPirogue",  durationSeconds: 20, draw: displaySk2 },
-];
+const scenes = [{ id: "pirogueOnly", durationSeconds: 20, draw: displaySk2 }];
