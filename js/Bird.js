@@ -1,9 +1,12 @@
+const BIRD_FRAME_MS = 1000 / 8; // 8fps animation
+
 const bird = {
   imgs: [],
   imgIndex: 0,
   isPaused: false,
   pauseTime: 2000, // ms
   lastPauseTime: 0, // ms
+  lastFrameTime: 0, // ms
   x: 0,
   y: 0,
 
@@ -23,27 +26,26 @@ const bird = {
     pg.pop();
   },
 
-  update: function (pg) {
+  update: function () {
     // wrap around screen
     if (this.x < 0) {
-      this.x = pg.width;
-    } else if (this.x > pg.width * 2) {
+      this.x = width;
+    } else if (this.x > width * 2) {
       this.x = -500;
     }
 
-    const now = pg.millis();
-    // if currently paused, check if pause is over
+    const now = millis();
     if (this.isPaused) {
       if (now - this.lastPauseTime > this.pauseTime) {
         this.isPaused = false;
       }
-      return; // don’t animate while paused
+      return;
     }
 
-    // normal animation
-    if (pg.frameCount % 8 === 0) {
+    if (now - this.lastFrameTime > BIRD_FRAME_MS) {
       this.moveFrame(1);
       this.move(4);
+      this.lastFrameTime = now;
     }
   },
 

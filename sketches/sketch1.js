@@ -1,11 +1,11 @@
-const START_SCENE_ID = "duckweed";
+const START_SCENE_ID = "treeSpan";
 
 let treeY = 0;
 
 const scenes = [
   {
     id: "treeSpan",
-    durationSeconds: 30,
+    durationSeconds: 90,
     draw: displayTreeSpan,
   },
   {
@@ -99,12 +99,6 @@ function displayQuestion(question, pg) {
   trees[1].display(-1000);
   pg.pop();
 
-  pg.push();
-  pg.scale(1.4);
-  bird.displayBackward(pg);
-  bird.update(pg);
-  bird.move(-1);
-  pg.pop();
 }
 
 function displayBigTreeQuestionsNo(pg) {
@@ -157,14 +151,8 @@ function displayPirogueBig(pg) {
 function displayBirdBigTree1(pg) {
   pg.textFont("monospace");
   pg.push();
-
   pg.scale(1.6);
   pg.translate(0, -180);
   trees[2].display(-pg.width * 0.9);
-  pg.pop();
-
-  pg.push();
-  bird.display(pg);
-  bird.update(pg);
   pg.pop();
 }

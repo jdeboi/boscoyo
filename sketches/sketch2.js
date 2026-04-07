@@ -37,5 +37,14 @@ function displaySk2(pg) {
   pg.pop();
 }
 
-// Scene IDs and durations must match sketch1 for sync to work
-const scenes = [{ id: "pirogueOnly", durationSeconds: 20, draw: displaySk2 }];
+function displaySk2Bird(pg) {
+  bird.display(pg);
+  bird.update();
+}
+
+const scenes = [
+  { id: "pirogueOnly", durationSeconds: 20, draw: displaySk2 },
+  { id: "birdWalk",    durationSeconds: 20, draw: displaySk2Bird,
+    onEnter: () => { bird.x = 0; bird.y = scene2D.height - 180; }
+  },
+];
