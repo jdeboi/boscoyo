@@ -14,7 +14,7 @@ let mappedSurface1, mappedSurface2;
 let scene2D;
 
 let poseReady = false;
-const drawOutline = false;
+const drawOutline = true;
 
 const poseState = {
   active: false,
@@ -30,9 +30,14 @@ const poseState = {
 };
 
 let xPosition = 0;
-let treeImg;
-let treeImg2;
+
+// imgs
+let croppedTreeTallImg;
+let fullTreeImg;
+let leaningTreeImg;
+let fullBaldTreeImg;
 let gatorImg;
+
 let font;
 let stars = [];
 let pMapper;
@@ -40,8 +45,8 @@ let moveForward = false;
 let shouldInvert = true;
 let debugMode = true;
 let previewMode = true;
-let mouseMode = true;    // toggle with 'm'
-let invertPoseX = true;  // mirror pose X coords; toggle with 'x'
+let mouseMode = true; // toggle with 'm'
+let invertPoseX = true; // mirror pose X coords; toggle with 'x'
 
 // --- sync ---
 const SYNC_SERVER_URL = `ws://${location.host}`;
@@ -58,13 +63,23 @@ function preload() {
     flipped: true,
     modelType: "MULTIPOSE_LIGHTNING",
   });
-  gatorImg = loadImage("./assets/Gator1.png");
+  gatorImg = loadImage("./assets/gator/Gator1.png");
   loadLotusImgs();
-  treeImg = loadImage("./assets/tree.png");
-  treeImg2 = loadImage("./assets/jotree.png");
-  font = loadFont("./assets/PARISREBEL.ttf");
+
+  // croppedTreeTallImg = loadImage("./assets/trees/croppedTreeTall.png");
+  croppedTreeTallImg = loadImage("./assets/trees/croppedTree.png");
+
+  fullTreeImg = loadImage("./assets/trees/fullTree.png");
+  leaningTreeImg = loadImage("./assets/trees/leaningTree.png");
+  fullBaldTreeImg = loadImage("./assets/trees/fullBaldTree.png");
+
+  font = loadFont("./assets/fonts/PARISREBEL.ttf");
   for (let i = 1; i < 13; i++) {
-    bird.imgs[i - 1] = loadImage("./assets/walk/" + i + ".png");
+    bird.imgs[i - 1] = loadImage("./assets/bird/walk/" + i + ".png");
+  }
+  for (let i = 0; i < 6; i++) {
+    // bird.flyImgs[i] = loadImage("./assets/bird/fly/" + i + "_white.png");
+    bird.flyImgs[i] = loadImage("./assets/bird/fly/" + i + ".png");
   }
   for (let i = 0; i < 6; i++) {
     pirogue.imgs[i] = loadImage("./assets/Pirogues/" + i + ".png");
@@ -114,7 +129,7 @@ function setup() {
   createLayeredStars(scene2D);
 
   for (let i = 0; i < 6; i++) {
-    pirogue.imgs[i].resize(0, 500);
+    pirogue.imgs[i].resize(0, 800);
   }
   pirogue.y = 100;
 
@@ -135,8 +150,12 @@ function draw() {
   if (mouseMode && syncRole !== "follower") {
     const mouseBody = {
       bodyCenter: { x: mouseX, y: mouseY },
-      nose: null, leftShoulder: null, rightShoulder: null,
-      leftWrist: null, rightWrist: null, handSpan: 0,
+      nose: null,
+      leftShoulder: null,
+      rightShoulder: null,
+      leftWrist: null,
+      rightWrist: null,
+      handSpan: 0,
     };
     poseState.active = true;
     poseState.bodies = [mouseBody];
@@ -386,31 +405,6 @@ function initBird(pg = scene2D) {
   }
 }
 
-function initTrees(pg = scene2D) {
-  treeImg2.resize(treeImg2.width * 0.58, 0);
-  let x = 0;
-  for (let i = 0; i < 5; i++) {
-    if (i % 2 == 0) {
-      const treeFactor = 0.4;
-      const mossLocations = [
-        { x: 400, y: 220, numSegments: 5, mossScale: 1.2 },
-        { x: 1200, y: 100, numSegments: 4, mossScale: 1.2 },
-        { x: 1400, y: 990, numSegments: 5, mossScale: 1.3 },
-      ];
-      trees.push(new Cypress(x, treeImg, treeFactor, mossLocations, pg));
-      x += treeImg.width * treeFactor + 100;
-    } else {
-      const treeFactor = 0.38;
-      const mossLocations = [
-        { x: 300, y: 1100, numSegments: 5, mossScale: 1 },
-        { x: 850, y: 60, numSegments: 4, mossScale: 1 },
-        { x: 1100, y: 800, numSegments: 5, mossScale: 1 },
-      ];
-      trees.push(new Cypress(x, treeImg2, treeFactor, mossLocations, pg));
-      x += treeImg2.width * treeFactor + 100;
-    }
-  }
-}
 function scaleLandmark(kp) {
   // ml5 returns pixel coords in video space; scale to canvas
   const x = kp.x * (width / mlVideo.width);
@@ -560,29 +554,30 @@ function initSync() {
       director.goToScene(msg.sceneId, { localSeconds: msg.localMs / 1000 });
       lastSyncedSceneIndex = director.activeIndex;
     } else if (msg.type === "pose") {
-      const sx = msg.senderWidth  ? width  / msg.senderWidth  : 1;
+      const sx = msg.senderWidth ? width / msg.senderWidth : 1;
       const sy = msg.senderHeight ? height / msg.senderHeight : 1;
-      const scalePoint = (pt) => pt ? { ...pt, x: pt.x * sx, y: pt.y * sy } : null;
+      const scalePoint = (pt) =>
+        pt ? { ...pt, x: pt.x * sx, y: pt.y * sy } : null;
       poseState.active = msg.active;
       poseState.bodies = msg.bodies.map((b) => ({
         ...b,
-        bodyCenter:     scalePoint(b.bodyCenter),
-        nose:           scalePoint(b.nose),
-        leftShoulder:   scalePoint(b.leftShoulder),
-        rightShoulder:  scalePoint(b.rightShoulder),
-        leftWrist:      scalePoint(b.leftWrist),
-        rightWrist:     scalePoint(b.rightWrist),
-        handSpan:       b.handSpan * sx,
+        bodyCenter: scalePoint(b.bodyCenter),
+        nose: scalePoint(b.nose),
+        leftShoulder: scalePoint(b.leftShoulder),
+        rightShoulder: scalePoint(b.rightShoulder),
+        leftWrist: scalePoint(b.leftWrist),
+        rightWrist: scalePoint(b.rightWrist),
+        handSpan: b.handSpan * sx,
       }));
       const first = poseState.bodies[0];
       if (first) {
-        poseState.nose          = first.nose;
-        poseState.leftShoulder  = first.leftShoulder;
+        poseState.nose = first.nose;
+        poseState.leftShoulder = first.leftShoulder;
         poseState.rightShoulder = first.rightShoulder;
-        poseState.leftWrist     = first.leftWrist;
-        poseState.rightWrist    = first.rightWrist;
-        poseState.bodyCenter    = first.bodyCenter;
-        poseState.handSpan      = first.handSpan;
+        poseState.leftWrist = first.leftWrist;
+        poseState.rightWrist = first.rightWrist;
+        poseState.bodyCenter = first.bodyCenter;
+        poseState.handSpan = first.handSpan;
       }
     }
   };

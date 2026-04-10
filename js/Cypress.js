@@ -8,7 +8,7 @@ class Cypress {
     this.x = x;
     this.startX = x;
     this.y = 0;
-    this.treeScale = treeScale;
+    this.treeImgScale = treeScale;
     // ----- Moss -----
     this.mossBushes = [];
     this.mossLocations = mossLocations;
@@ -30,17 +30,21 @@ class Cypress {
     }
   }
 
-  display(xPosition) {
+  display(xPosition, sc = 1) {
     this.pg.push();
 
     // move to this tree's base point
     this.pg.translate(this.x + xPosition, this.y);
 
+    this.pg.scale(sc);
+    this.pg.push();
+
     // scale the whole tree (and moss)
-    this.pg.scale(this.treeScale, this.treeScale);
+    this.pg.scale(this.treeImgScale, this.treeImgScale);
 
     // draw tree at original size so scale() does all the work
     this.pg.image(this.img, 0, 0);
+    this.pg.pop();
 
     const updatePhysics = frameCount % 2 === 0;
     this.mossBushes.forEach((mossBush) => {
@@ -53,5 +57,9 @@ class Cypress {
     });
 
     this.pg.pop();
+  }
+
+  getWidth() {
+    return this.img.width * this.treeImgScale;
   }
 }

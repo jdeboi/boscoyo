@@ -98,7 +98,6 @@ function displayQuestion(question, pg) {
   pg.translate(0, -200);
   trees[1].display(-1000);
   pg.pop();
-
 }
 
 function displayBigTreeQuestionsNo(pg) {
@@ -119,7 +118,8 @@ function displayPirogue(pg) {
   xPosition--;
 
   pg.push();
-  pg.scale(1.2);
+
+  pg.scale(0.5);
   pirogue.display(pg);
   pirogue.update();
 
@@ -141,7 +141,7 @@ function displayPirogueBig(pg) {
   pg.pop();
 
   pg.push();
-  pg.scale(1.5);
+  pg.scale(0.5);
   pirogue.display(pg);
   pirogue.update();
   pirogue.move(1);

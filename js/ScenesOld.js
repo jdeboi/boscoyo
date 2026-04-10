@@ -31,31 +31,6 @@ function displayTitle(pg) {
   pg.text("(Cypress Knees)", width / 2, height / 2 + 120);
 }
 
-function displayQuestion(question, pg) {
-  xPosition--;
-  pg.textFont("monospace");
-
-  pg.push();
-  pg.fill(255);
-  pg.textAlign(pg.LEFT, pg.CENTER);
-  pg.textSize(54);
-  pg.text(question, pg.width / 2 + 50, 0, 550, 800);
-  pg.pop();
-
-  pg.push();
-  pg.scale(1.8);
-  pg.translate(0, -200);
-  trees[1].display(-1000);
-  pg.pop();
-
-  pg.push();
-  pg.scale(1.4);
-  bird.displayBackward(pg);
-  bird.update(pg);
-  bird.move(-1);
-  pg.pop();
-}
-
 function displayBigTreeQuestions1(pg) {
   displayQuestion(questions[1], pg);
 }

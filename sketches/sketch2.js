@@ -4,8 +4,9 @@ let sk2PirogueX = 0;
 let sk2FacingRight = true;
 
 function displaySk2(pg) {
-  const SC = 2;
-  const bodyX = poseState.bodies.length > 0 ? poseState.bodies[0].bodyCenter.x : mouseX;
+  const SC = 1;
+  const bodyX =
+    poseState.bodies.length > 0 ? poseState.bodies[0].bodyCenter.x : mouseX;
   const scaledX = (bodyX - pg.width / 2) * 2 + pg.width / 2; // 2x amplification around center
   const targetX = pg.width - scaledX; // counteract shouldInvert transform applied by SceneDirector
 
@@ -16,7 +17,7 @@ function displaySk2(pg) {
   sk2PirogueX = pg.constrain(
     pg.lerp(sk2PirogueX, targetX, 0.04),
     halfW,
-    pg.width - halfW
+    pg.width - halfW,
   );
 
   if (pg.abs(sk2PirogueX - prevX) > 0.1) {
@@ -38,13 +39,20 @@ function displaySk2(pg) {
 }
 
 function displaySk2Bird(pg) {
-  bird.display(pg);
-  bird.update();
+  const dir = 4;
+  bird.displayFly(pg, dir);
+  bird.update(dir);
 }
 
 const scenes = [
   { id: "pirogueOnly", durationSeconds: 20, draw: displaySk2 },
-  { id: "birdWalk",    durationSeconds: 20, draw: displaySk2Bird,
-    onEnter: () => { bird.x = 0; bird.y = scene2D.height - 180; }
+  {
+    id: "birdWalk",
+    durationSeconds: 20,
+    draw: displaySk2Bird,
+    onEnter: () => {
+      bird.x = 0;
+      bird.y = scene2D.height - 180;
+    },
   },
 ];
