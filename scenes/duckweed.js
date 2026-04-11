@@ -1,8 +1,4 @@
 const duckweedParticles = [];
-let gatorFacingRight = true;
-let prevGatorX = null;
-let gatorSmoothX = null;
-let gatorSmoothY = null;
 
 class DuckweedParticle {
   constructor(x, y) {
@@ -93,39 +89,15 @@ function displayDuckweed(pg = scene2D) {
     pg.pop();
   }
 
-  // smooth gator toward target (single gator, first body or mouse)
   const rawTarget =
     poseState.bodies.length > 0
       ? poseState.bodies[0].bodyCenter
       : { x: mouseX, y: mouseY };
 
-  const gatorW = gatorImg ? gatorImg.width / 2 : 60;
-  const gatorH = gatorImg ? gatorImg.height / 2 : 40;
-  const targetX = constrain(rawTarget.x, gatorW, pg.width - gatorW);
-  const targetY = constrain(rawTarget.y, gatorH, pg.height - gatorH);
+  const margin = 80;
+  const targetX = constrain(rawTarget.x, margin, pg.width - margin);
+  const targetY = constrain(rawTarget.y, margin, pg.height - margin);
 
-  if (gatorSmoothX === null) {
-    gatorSmoothX = targetX;
-    gatorSmoothY = targetY;
-  }
-
-  const lerpAmt = 0.06;
-  const prevSmoothedX = gatorSmoothX;
-  gatorSmoothX = lerp(gatorSmoothX, targetX, lerpAmt);
-  gatorSmoothY = lerp(gatorSmoothY, targetY, lerpAmt);
-
-  if (prevGatorX !== null && abs(gatorSmoothX - prevSmoothedX) > 0.05) {
-    gatorFacingRight = gatorSmoothX > prevSmoothedX;
-  }
-  prevGatorX = gatorSmoothX;
-
-  const gatorBob = sin(millis() * 0.0015) * 5;
-
-  pg.imageMode(pg.CENTER);
-  pg.push();
-  pg.translate(gatorSmoothX, gatorSmoothY + gatorBob);
-  if (!gatorFacingRight) pg.scale(-1, 1);
-  pg.scale(0.5);
-  pg.image(gatorImg, 0, 0);
-  pg.pop();
+  gator.update(targetX, targetY);
+  gator.display(pg);
 }

@@ -38,7 +38,9 @@ let croppedTreeTallImg;
 let fullTreeImg;
 let leaningTreeImg;
 let fullBaldTreeImg;
-let gatorImg;
+let gatorHeadImg;
+let gatorBackImg;
+const gator = new Gator();
 
 let font;
 let stars = [];
@@ -67,7 +69,8 @@ function preload() {
     flipped: true,
     modelType: "MULTIPOSE_LIGHTNING",
   });
-  gatorImg = loadImage("./assets/gator/Gator1.png");
+  gatorHeadImg = loadImage("./assets/gator/head2.png");
+  gatorBackImg = loadImage("./assets/gator/back4.png");
   loadLotusImgs();
 
   // croppedTreeTallImg = loadImage("./assets/trees/croppedTreeTall.png");
@@ -116,10 +119,15 @@ async function initPoseSystem() {
 
   try {
     // Open default camera first (grants permission + populates device labels)
-    const permStream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const permStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+    });
     const devices = await navigator.mediaDevices.enumerateDevices();
     const cameras = devices.filter((d) => d.kind === "videoinput");
-    console.log("Available cameras:", cameras.map((c) => c.label));
+    console.log(
+      "Available cameras:",
+      cameras.map((c) => c.label),
+    );
 
     const usb = cameras.find(
       (c) =>
@@ -128,12 +136,19 @@ async function initPoseSystem() {
     );
 
     let stream;
-    const currentDeviceId = permStream.getVideoTracks()[0]?.getSettings().deviceId;
+    const currentDeviceId = permStream
+      .getVideoTracks()[0]
+      ?.getSettings().deviceId;
     if (usb && usb.deviceId !== currentDeviceId) {
       // Permission stream is the wrong camera — stop it and open the USB one
       permStream.getTracks().forEach((t) => t.stop());
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { deviceId: { exact: usb.deviceId }, width: 480, height: 360, frameRate: { ideal: 15, max: 20 } },
+        video: {
+          deviceId: { exact: usb.deviceId },
+          width: 480,
+          height: 360,
+          frameRate: { ideal: 15, max: 20 },
+        },
       });
       setStatus(`Using: ${usb.label}`);
     } else {
@@ -253,18 +268,8 @@ function setup() {
   // Camera is started manually via the "Start Camera" button,
   // or left off when using a dedicated pose computer (/pose)
 }
-let _pt = {};
-let _ptLast = 0;
-function _t(label) {
-  const now = performance.now();
-  if (_pt._last) _pt[label] = (_pt[label] ?? 0) + (now - _pt._last);
-  _pt._last = now;
-}
 
 function draw() {
-  const _frameStart = performance.now();
-  _pt._last = _frameStart;
-
   if (mouseMode && syncRole !== "follower") {
     const mouseBody = {
       bodyCenter: { x: mouseX, y: mouseY },
@@ -287,7 +292,6 @@ function draw() {
 
   scene2D.push();
   scene2D.background(0);
-  _t("bg");
 
   // TEST A: comment this block out — does display get fast?
   const activeSceneId = director.scenes[director.activeIndex]?.id;
@@ -299,12 +303,10 @@ function draw() {
   ];
   // TEST A1: comment out stars
   if (!scenesWithoutStars.includes(activeSceneId)) drawStars(scene2D);
-  _t("stars");
 
   // TEST A2: comment out scene
   director.update(deltaTime, scene2D);
   director.draw(scene2D);
-  _t("scene");
 
   if (syncRole === "leader" && director.activeIndex !== lastSyncedSceneIndex) {
     lastSyncedSceneIndex = director.activeIndex;
@@ -332,23 +334,8 @@ function draw() {
     mappedSurface1.displayTexture(scene2D, 0, 0, width / 2, height);
     mappedSurface2.displayTexture(scene2D, width / 2, 0, width / 2, height);
   }
-  // END TEST B
-  _t("display");
-
   displayFrameRate();
   pop();
-
-  // log timing breakdown once per second
-  const now = performance.now();
-  if (now - _ptLast > 1000) {
-    const total = now - _ptLast;
-    const frames = renderFrameCount - lastRenderCount + 1;
-    // console.log(
-    //   `frame budget — bg:${(_pt.bg ?? 0).toFixed(1)}ms  stars:${(_pt.stars ?? 0).toFixed(1)}ms  scene:${(_pt.scene ?? 0).toFixed(1)}ms  display:${(_pt.display ?? 0).toFixed(1)}ms  (${frames}fps)`,
-    // );
-    _pt = {};
-    _ptLast = now;
-  }
 }
 
 function updateFPS() {
@@ -364,7 +351,7 @@ function updateFPS() {
   }
 }
 function displayFrameRate() {
-  // if (!debugMode) return;
+  if (!debugMode) return;
   updateFPS();
   fill("red");
   noStroke();
@@ -518,6 +505,7 @@ function keyPressed() {
       break;
     case "d":
       debugMode = !debugMode;
+      if (statusEl) statusEl.style.display = debugMode ? "block" : "none";
       break;
     case "m":
       mouseMode = !mouseMode;
@@ -642,7 +630,10 @@ function updatePoseState() {
     const rightWrist = kp["right_wrist"];
 
     const sLS = smoothLandmark(prev.leftShoulder, scaleLandmark(leftShoulder));
-    const sRS = smoothLandmark(prev.rightShoulder, scaleLandmark(rightShoulder));
+    const sRS = smoothLandmark(
+      prev.rightShoulder,
+      scaleLandmark(rightShoulder),
+    );
     if (!sLS || !sRS) continue; // mlVideo was nulled out mid-callback
 
     const body = {
@@ -693,6 +684,7 @@ function windowResized() {
 }
 
 const statusEl = document.getElementById("status");
+if (statusEl) statusEl.style.display = debugMode ? "block" : "none";
 
 function setStatus(msg) {
   if (statusEl) statusEl.textContent = msg;

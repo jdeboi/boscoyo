@@ -6,19 +6,20 @@
 // so the name is resolved lazily at call time, not at file load time.
 // Functions from shared scenes/ files (displayDuckweed etc.) can be referenced directly.
 
-const START_SCENE_ID = "treeSpan";
+const START_SCENE_ID = "duckweed";
+const DURATION = 1000;
 
 const sceneCoordinator = [
   {
     id: "treeSpan",
-    durationSeconds: 90,
+    durationSeconds: DURATION,
     sketch1: { draw: (pg) => displayTreeSpan(pg) },
     sketch2: { draw: (pg) => displaySk2(pg) },
     sketch3: null,
   },
   {
     id: "birdBigTree1",
-    durationSeconds: 15,
+    durationSeconds: DURATION,
     sketch1: {
       draw: (pg) => displayBirdBigTree1(pg),
       onEnter: () => {
@@ -36,7 +37,7 @@ const sceneCoordinator = [
   },
   {
     id: "pirogue",
-    durationSeconds: 25,
+    durationSeconds: DURATION,
     sketch1: {
       draw: (pg) => displayPirogueBig(pg),
       onEnter: () => {
@@ -49,35 +50,35 @@ const sceneCoordinator = [
   },
   {
     id: "lotus",
-    durationSeconds: 20,
+    durationSeconds: DURATION,
     sketch1: { draw: displayLotus },
     sketch2: null,
     sketch3: null,
   },
   {
     id: "duckweed",
-    durationSeconds: 30,
+    durationSeconds: DURATION,
     sketch1: { draw: displayDuckweed },
     sketch2: { draw: displayDuckweed },
     sketch3: null,
   },
   {
     id: "moss",
-    durationSeconds: 30,
+    durationSeconds: DURATION,
     sketch1: { draw: displayMossScene },
     sketch2: { draw: displayMossScene },
     sketch3: null,
   },
   {
     id: "pirogueScene",
-    durationSeconds: 30,
+    durationSeconds: DURATION,
     sketch1: { draw: displayPirogueScene },
     sketch2: null,
     sketch3: null,
   },
   {
     id: "bigTreeQuestions",
-    durationSeconds: 8,
+    durationSeconds: DURATION,
     sketch1: {
       draw: (pg) => displayBigTreeQuestionsNo(pg),
       onEnter: (pg) => {
@@ -89,28 +90,8 @@ const sceneCoordinator = [
     sketch3: null,
   },
   {
-    id: "bigTreeQuestions2",
-    durationSeconds: 8,
-    sketch1: { draw: (pg) => displayBigTreeQuestionsNo(pg) },
-    sketch2: null,
-    sketch3: null,
-  },
-  {
-    id: "bigTreeQuestions3",
-    durationSeconds: 4,
-    sketch1: {
-      draw: (pg) => displayBigTreeQuestionsNo(pg),
-      onExit: (pg) => {
-        bird.x = 0;
-        bird.y = pg.height - 180;
-      },
-    },
-    sketch2: null,
-    sketch3: null,
-  },
-  {
     id: "treesAndPirogue",
-    durationSeconds: 20,
+    durationSeconds: DURATION,
     sketch1: {
       draw: (pg) => displayPirogue(pg),
       onEnter: () => {
