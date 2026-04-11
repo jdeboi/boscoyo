@@ -33,6 +33,8 @@ ipconfig getifaddr en0
 | `d` | Toggle debug overlay (FPS, pose landmarks) |
 | `c` | Toggle projection mapper calibration |
 | `i` | Flip canvas horizontally |
+| `k` | Toggle camera on/off (leader only) |
+| `m` | Toggle mouse mode (use mouse instead of pose) |
 | `l` | Reload projection map from `maps/map.json` |
 | `s` | Save current projection map to `map.json` |
 | `f` | Toggle fullscreen |

@@ -1,5 +1,7 @@
 let bodyPose;
 let mlVideo;
+let cameraStream = null;
+let cameraActive = false;
 let mlPoses = [];
 
 let renderFrameCount = 0;
@@ -108,6 +110,8 @@ function resizeImages() {
   fullBaldTreeImg.resize(0, Math.round(fullBaldTreeImg.height * 0.25 * treeSz));
 }
 async function initPoseSystem() {
+  if (cameraActive) return; // prevent double-start during async init
+  cameraActive = true;
   setStatus("Starting camera...");
 
   try {
@@ -146,8 +150,11 @@ async function initPoseSystem() {
     await videoEl.play();
 
     mlVideo = videoEl;
+    cameraStream = stream;
+    cameraActive = true;
 
     bodyPose.detectStart(mlVideo, (results) => {
+      if (!cameraActive) return; // camera was stopped before this callback fired
       mlPoses = results;
       if (!poseReady) {
         poseReady = true;
@@ -157,8 +164,35 @@ async function initPoseSystem() {
       sendPoseSync();
     });
   } catch (e) {
+    cameraActive = false; // allow retry
     setStatus("Camera error: " + e.message);
     console.error("initPoseSystem:", e);
+  }
+}
+
+function stopPoseSystem() {
+  bodyPose.detectStop();
+  if (mlVideo) {
+    mlVideo.srcObject = null; // release frame pipeline
+  }
+  if (cameraStream) {
+    cameraStream.getTracks().forEach((t) => t.stop());
+    cameraStream = null;
+  }
+  mlVideo = null;
+  mlPoses = [];
+  poseReady = false;
+  cameraActive = false;
+  poseState.active = false;
+  poseState.bodies = [];
+  setStatus("Camera off");
+}
+
+async function toggleCamera() {
+  if (cameraActive) {
+    stopPoseSystem();
+  } else {
+    await initPoseSystem();
   }
 }
 
@@ -476,6 +510,9 @@ function resetAnimation(pg = scene2D) {
 
 function keyPressed() {
   switch (key) {
+    case "k":
+      toggleCamera();
+      break;
     case "i":
       shouldInvert = !shouldInvert;
       break;
@@ -605,10 +642,8 @@ function updatePoseState() {
     const rightWrist = kp["right_wrist"];
 
     const sLS = smoothLandmark(prev.leftShoulder, scaleLandmark(leftShoulder));
-    const sRS = smoothLandmark(
-      prev.rightShoulder,
-      scaleLandmark(rightShoulder),
-    );
+    const sRS = smoothLandmark(prev.rightShoulder, scaleLandmark(rightShoulder));
+    if (!sLS || !sRS) continue; // mlVideo was nulled out mid-callback
 
     const body = {
       nose: nose ? smoothLandmark(prev.nose, scaleLandmark(nose)) : null,
@@ -657,17 +692,10 @@ function windowResized() {
   recreateProjectionSurface();
 }
 
-const startBtn = document.getElementById("startBtn");
 const statusEl = document.getElementById("status");
 
 function setStatus(msg) {
   if (statusEl) statusEl.textContent = msg;
-}
-if (startBtn) {
-  startBtn.addEventListener("click", () => {
-    startBtn.disabled = true;
-    initPoseSystem();
-  });
 }
 
 function initSync() {
