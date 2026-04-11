@@ -110,42 +110,43 @@ function resizeImages() {
 async function initPoseSystem() {
   setStatus("Starting camera...");
 
-  // Enumerate devices to prefer USB camera over built-in
-  let deviceId;
   try {
-    // Need a permission grant first before labels are visible
-    await navigator.mediaDevices.getUserMedia({ video: true });
+    // Open default camera first (grants permission + populates device labels)
+    const permStream = await navigator.mediaDevices.getUserMedia({ video: true });
     const devices = await navigator.mediaDevices.enumerateDevices();
     const cameras = devices.filter((d) => d.kind === "videoinput");
-    console.log(
-      "Available cameras:",
-      cameras.map((c) => c.label),
-    );
-    // Prefer anything that isn't the built-in / FaceTime camera
+    console.log("Available cameras:", cameras.map((c) => c.label));
+
     const usb = cameras.find(
       (c) =>
         !c.label.toLowerCase().includes("facetime") &&
         !c.label.toLowerCase().includes("built-in"),
     );
-    deviceId = usb?.deviceId ?? cameras[0]?.deviceId;
-    if (usb) setStatus(`Using: ${usb.label}`);
-  } catch (e) {
-    console.warn("Camera enumeration failed, using default", e);
-  }
 
-  const constraints = {
-    video: {
-      width: 480,
-      height: 360,
-      frameRate: { ideal: 15, max: 20 }, // cap inference rate to reduce GPU load
-      ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
-    },
-  };
+    let stream;
+    const currentDeviceId = permStream.getVideoTracks()[0]?.getSettings().deviceId;
+    if (usb && usb.deviceId !== currentDeviceId) {
+      // Permission stream is the wrong camera — stop it and open the USB one
+      permStream.getTracks().forEach((t) => t.stop());
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: usb.deviceId }, width: 480, height: 360, frameRate: { ideal: 15, max: 20 } },
+      });
+      setStatus(`Using: ${usb.label}`);
+    } else {
+      // Already on the right camera — reuse the stream, apply constraints
+      stream = permStream;
+    }
 
-  mlVideo = createCapture(constraints);
-  mlVideo.hide();
+    // Use a raw video element to avoid p5 createCapture permission conflicts
+    const videoEl = document.createElement("video");
+    videoEl.srcObject = stream;
+    videoEl.width = 480;
+    videoEl.height = 360;
+    videoEl.playsInline = true;
+    await videoEl.play();
 
-  mlVideo.elt.onloadedmetadata = () => {
+    mlVideo = videoEl;
+
     bodyPose.detectStart(mlVideo, (results) => {
       mlPoses = results;
       if (!poseReady) {
@@ -155,7 +156,10 @@ async function initPoseSystem() {
       updatePoseState();
       sendPoseSync();
     });
-  };
+  } catch (e) {
+    setStatus("Camera error: " + e.message);
+    console.error("initPoseSystem:", e);
+  }
 }
 
 function setup() {
@@ -212,7 +216,8 @@ function setup() {
   // pMapper.load("maps/map.json");
   initSync();
 
-  if (syncRole === "leader") initPoseSystem();
+  // Camera is started manually via the "Start Camera" button,
+  // or left off when using a dedicated pose computer (/pose)
 }
 let _pt = {};
 let _ptLast = 0;
@@ -304,9 +309,9 @@ function draw() {
   if (now - _ptLast > 1000) {
     const total = now - _ptLast;
     const frames = renderFrameCount - lastRenderCount + 1;
-    console.log(
-      `frame budget — bg:${(_pt.bg ?? 0).toFixed(1)}ms  stars:${(_pt.stars ?? 0).toFixed(1)}ms  scene:${(_pt.scene ?? 0).toFixed(1)}ms  display:${(_pt.display ?? 0).toFixed(1)}ms  (${frames}fps)`,
-    );
+    // console.log(
+    //   `frame budget — bg:${(_pt.bg ?? 0).toFixed(1)}ms  stars:${(_pt.stars ?? 0).toFixed(1)}ms  scene:${(_pt.scene ?? 0).toFixed(1)}ms  display:${(_pt.display ?? 0).toFixed(1)}ms  (${frames}fps)`,
+    // );
     _pt = {};
     _ptLast = now;
   }
@@ -329,12 +334,15 @@ function displayFrameRate() {
   updateFPS();
   fill("red");
   noStroke();
-  textSize(20);
+  textSize(200);
 
   push();
   translate(-width / 2, -height / 2);
-  text(`render FPS: ${renderFPS}`, width - 200, 150);
-  text(`pose FPS: ${poseFPS}`, width - 200, 180);
+  text(`${renderFPS}`, 200, 150);
+  text(`${poseFPS}`, 200, 380);
+
+  // text(`render FPS: ${renderFPS}`, width - 200, 150);
+  // text(`pose FPS: ${poseFPS}`, width - 200, 180);
   pop();
 }
 
@@ -670,13 +678,16 @@ function initSync() {
   syncSocket.onerror = (e) => console.warn("sync error", e);
 
   syncSocket.onmessage = ({ data }) => {
-    if (syncRole !== "follower") return;
     const msg = JSON.parse(data);
-    if (msg.type === "scene") {
-      console.log("received scene →", msg.sceneId);
+
+    // Scene changes: followers only
+    if (msg.type === "scene" && syncRole === "follower") {
       director.goToScene(msg.sceneId, { localSeconds: msg.localMs / 1000 });
       lastSyncedSceneIndex = director.activeIndex;
-    } else if (msg.type === "pose") {
+    }
+
+    // Pose: apply on both leader and follower (leader gets pose from /pose computer)
+    if (msg.type === "pose" && !mouseMode) {
       const sx = msg.senderWidth ? width / msg.senderWidth : 1;
       const sy = msg.senderHeight ? height / msg.senderHeight : 1;
       const scalePoint = (pt) =>

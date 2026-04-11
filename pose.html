@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Boscoyo Pose</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 20px;
+        background: #111;
+        color: white;
+        font-family: monospace;
+        font-size: 14px;
+      }
+      #status { margin-bottom: 12px; color: #aaa; }
+      #fps { color: #4f4; margin-bottom: 12px; }
+      video {
+        width: 480px;
+        height: 360px;
+        display: block;
+        border: 1px solid #333;
+      }
+      canvas {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 480px;
+        height: 360px;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">Starting...</div>
+    <div id="fps"></div>
+    <div style="position:relative; display:inline-block;">
+      <video id="video" playsinline muted></video>
+      <canvas id="overlay" width="480" height="360"></canvas>
+    </div>
+    <script src="https://unpkg.com/ml5@1/dist/ml5.min.js"></script>
+    <script src="./pose.js"></script>
+  </body>
+</html>

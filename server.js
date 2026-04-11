@@ -16,10 +16,11 @@ const MIME = {
 };
 
 const ROUTES = {
-  "/":       "index.html",
+  "/":        "index.html",
   "/sketch1": "index.html",
   "/sketch2": "sketch2.html",
   "/sketch3": "sketch3.html",
+  "/pose":    "pose.html",
 };
 
 // Static file server
