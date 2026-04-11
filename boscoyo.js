@@ -12,7 +12,7 @@ let lastFPSTime = 0;
 let lastRenderCount = 0;
 let lastPoseCount = 0;
 
-let mappedSurface1, mappedSurface2;
+const mappedSurfaces = [];
 let scene2D;
 
 let poseReady = false;
@@ -46,15 +46,17 @@ let font;
 let stars = [];
 let pMapper;
 let moveForward = false;
-let shouldInvert = true;
+let shouldInvert = false;
 let debugMode = true;
 let previewMode = true;
 let mouseMode = true; // toggle with 'm'
 let invertPoseX = true; // mirror pose X coords; toggle with 'x'
 
 // --- sync ---
-const SYNC_SERVER_URL = `ws://${location.host}`;
-const syncRole = new URLSearchParams(location.search).get("role"); // "leader" | "follower"
+const _syncParams = new URLSearchParams(location.search);
+const syncRole = _syncParams.get("role"); // "leader" | "follower"
+const _syncHost = _syncParams.get("sync"); // optional leader IP for offline-local-server mode
+const SYNC_SERVER_URL = _syncHost ? `ws://${_syncHost}:8080` : `ws://${location.host}`;
 let syncSocket = null;
 let lastSyncedSceneIndex = -1;
 
@@ -223,8 +225,8 @@ function setup() {
   //   cH = 800;
   // }
 
-  const c = createCanvas(cW, cH, WEBGL);
-  scene2D = createGraphics(cW, cH);
+  const c = createCanvas(1280, 800, WEBGL);
+  scene2D = createGraphics(c.width, c.height);
   scene2D.pixelDensity(1);
 
   c.position(0, 0);
@@ -331,8 +333,10 @@ function draw() {
   if (previewMode) {
     image(scene2D, -width / 2, -height / 2, width, height);
   } else {
-    mappedSurface1.displayTexture(scene2D, 0, 0, width / 2, height);
-    mappedSurface2.displayTexture(scene2D, width / 2, 0, width / 2, height);
+    const sw = width / mappedSurfaces.length;
+    for (let i = 0; i < mappedSurfaces.length; i++) {
+      mappedSurfaces[i].displayTexture(scene2D, i * sw, 0, sw, height);
+    }
   }
   displayFrameRate();
   pop();
@@ -679,8 +683,8 @@ function updatePoseState() {
 }
 
 function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
-  recreateProjectionSurface();
+  // resizeCanvas(windowWidth, windowHeight);
+  // recreateProjectionSurface();
 }
 
 const statusEl = document.getElementById("status");
@@ -692,12 +696,18 @@ function setStatus(msg) {
 
 function initSync() {
   if (!syncRole) return;
-  syncSocket = new WebSocket(SYNC_SERVER_URL);
 
-  syncSocket.onopen = () => console.log(`sync connected as ${syncRole}`);
-  syncSocket.onerror = (e) => console.warn("sync error", e);
+  function connect() {
+    syncSocket = new WebSocket(SYNC_SERVER_URL);
 
-  syncSocket.onmessage = ({ data }) => {
+    syncSocket.onopen = () => console.log(`sync connected as ${syncRole}`);
+    syncSocket.onerror = (e) => console.warn("sync error", e);
+    syncSocket.onclose = () => {
+      console.log("sync lost — retrying in 2s");
+      setTimeout(connect, 2000);
+    };
+
+    syncSocket.onmessage = ({ data }) => {
     const msg = JSON.parse(data);
 
     // Scene changes: followers only
@@ -735,6 +745,9 @@ function initSync() {
       }
     }
   };
+  }
+
+  connect();
 }
 
 function sendPoseSync() {
@@ -780,12 +793,14 @@ function sendSceneSync() {
 
 function initProjectionMapper() {
   pMapper = createProjectionMapper(this);
-  mappedSurface1 = pMapper.createQuadMap(width / 2, height, 8);
-  mappedSurface2 = pMapper.createQuadMap(width / 2, height, 8);
+  const sw = width / NUM_PROJECTION_SURFACES;
+  for (let i = 0; i < NUM_PROJECTION_SURFACES; i++) {
+    mappedSurfaces.push(pMapper.createQuadMap(sw, height, 8));
+  }
 }
 
 function recreateProjectionSurface() {
-  if (!mappedSurface1) return;
-  mappedSurface1.setSize(width / 2, height);
-  mappedSurface2.setSize(width / 2, height);
+  if (!mappedSurfaces.length) return;
+  const sw = width / mappedSurfaces.length;
+  for (const s of mappedSurfaces) s.setSize(sw, height);
 }

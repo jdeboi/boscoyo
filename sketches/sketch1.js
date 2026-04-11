@@ -1,4 +1,5 @@
 const SKETCH_ID = "sketch1";
+const NUM_PROJECTION_SURFACES = 2;
 
 let treeY = 0;
 

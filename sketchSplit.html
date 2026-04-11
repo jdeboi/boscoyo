@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Boscoyo Split</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: black;
+        color: white;
+        font-family: Arial, sans-serif;
+        overflow: hidden;
+      }
+
+      #controls {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 10;
+      }
+
+      button {
+        padding: 10px 14px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      #status {
+        margin-top: 8px;
+        white-space: pre-wrap;
+        font-size: 14px;
+      }
+
+      video {
+        display: none;
+      }
+
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="controls">
+      <!-- <button id="startBtn">Start Camera</button> -->
+      <!-- <div id="status">Idle</div> -->
+    </div>
+
+    <script src="./lib/p5.min.js"></script>
+    <script src="./lib/ml5.min.js"></script>
+    <script src="./lib/p5.mapper.min.js"></script>
+    <script src="./scenes/lotus.js"></script>
+    <script src="./scenes/duckweed.js"></script>
+    <script src="./scenes/moss.js"></script>
+    <script src="./scenes/pirogueScene.js"></script>
+    <script src="./js/MossChain.js"></script>
+    <script src="./js/SceneDirector.js"></script>
+    <script src="./js/Pirogue.js"></script>
+    <script src="./js/TreeInit.js"></script>
+    <script src="./js/Bird.js"></script>
+    <script src="./js/Star.js"></script>
+    <script src="./js/Cypress.js"></script>
+    <script src="./sketches/sketchSplit.js"></script>
+    <script src="./scenes/SceneCoordinator.js"></script>
+    <script src="./boscoyo.js"></script>
+  </body>
+</html>

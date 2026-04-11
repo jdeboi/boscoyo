@@ -1,12 +1,12 @@
 // Central scene registry — single source of truth for scene IDs and durations.
-// Each sketch key (sketch1/sketch2/sketch3) can have { draw, onEnter, onExit }.
+// Each sketch key (sketch1/sketch2/sketchOverlay/sketchSplit) can have { draw, onEnter, onExit }.
 // Set to null to show a black screen on that sketch for that scene.
 //
 // IMPORTANT: sketch-specific draw functions must be wrapped in arrow functions
 // so the name is resolved lazily at call time, not at file load time.
 // Functions from shared scenes/ files (displayDuckweed etc.) can be referenced directly.
 
-const START_SCENE_ID = "duckweed";
+const START_SCENE_ID = "pirogueScene";
 const DURATION = 1000;
 
 const sceneCoordinator = [
@@ -15,7 +15,8 @@ const sceneCoordinator = [
     durationSeconds: DURATION,
     sketch1: { draw: (pg) => displayTreeSpan(pg) },
     sketch2: { draw: (pg) => displaySk2(pg) },
-    sketch3: null,
+    sketchOverlay: null,
+    sketchSplit: null,
   },
   {
     id: "birdBigTree1",
@@ -33,7 +34,8 @@ const sceneCoordinator = [
         bird.y = scene2D.height - 180;
       },
     },
-    sketch3: null,
+    sketchOverlay: null,
+    sketchSplit: null,
   },
   {
     id: "pirogue",
@@ -46,35 +48,40 @@ const sceneCoordinator = [
       },
     },
     sketch2: null,
-    sketch3: null,
+    sketchOverlay: null,
+    sketchSplit: null,
   },
   {
     id: "lotus",
     durationSeconds: DURATION,
     sketch1: { draw: displayLotus },
     sketch2: null,
-    sketch3: null,
+    sketchOverlay: null,
+    sketchSplit: null,
   },
   {
     id: "duckweed",
     durationSeconds: DURATION,
-    sketch1: { draw: displayDuckweed },
-    sketch2: { draw: displayDuckweed },
-    sketch3: null,
+    sketch1: { draw: displayDuckweedParticles },
+    sketch2: { draw: displayDuckweedParticles },
+    sketchOverlay: { draw: displayGatorOnly },
+    sketchSplit: null,
   },
   {
     id: "moss",
     durationSeconds: DURATION,
     sketch1: { draw: displayMossScene },
     sketch2: { draw: displayMossScene },
-    sketch3: null,
+    sketchOverlay: null,
+    sketchSplit: null,
   },
   {
     id: "pirogueScene",
     durationSeconds: DURATION,
     sketch1: { draw: displayPirogueScene },
     sketch2: null,
-    sketch3: null,
+    sketchOverlay: null,
+    sketchSplit: null,
   },
   {
     id: "bigTreeQuestions",
@@ -87,7 +94,8 @@ const sceneCoordinator = [
       },
     },
     sketch2: null,
-    sketch3: null,
+    sketchOverlay: null,
+    sketchSplit: null,
   },
   {
     id: "treesAndPirogue",
@@ -103,6 +111,7 @@ const sceneCoordinator = [
       },
     },
     sketch2: null,
-    sketch3: null,
+    sketchOverlay: null,
+    sketchSplit: null,
   },
 ];

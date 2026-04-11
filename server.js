@@ -19,7 +19,8 @@ const ROUTES = {
   "/":        "index.html",
   "/sketch1": "index.html",
   "/sketch2": "sketch2.html",
-  "/sketch3": "sketch3.html",
+  "/sketchOverlay": "sketchOverlay.html",
+  "/sketchSplit":   "sketchSplit.html",
   "/pose":    "pose.html",
 };
 

@@ -120,11 +120,17 @@ function drawOverlay(results, videoEl) {
 }
 
 async function init() {
-  // Connect WebSocket
-  socket = new WebSocket(SYNC_SERVER_URL);
-  socket.onopen = () => setStatus("WebSocket connected — waiting for camera...");
-  socket.onerror = () => setStatus("WebSocket error");
-  socket.onclose = () => setStatus("WebSocket disconnected");
+  // Connect WebSocket with auto-reconnect
+  function connectSync() {
+    socket = new WebSocket(SYNC_SERVER_URL);
+    socket.onopen = () => setStatus("WebSocket connected — waiting for camera...");
+    socket.onerror = () => setStatus("WebSocket error");
+    socket.onclose = () => {
+      setStatus("WebSocket disconnected — retrying...");
+      setTimeout(connectSync, 2000);
+    };
+  }
+  connectSync();
 
   // Load bodyPose model
   const bodyPose = ml5.bodyPose("MoveNet", {

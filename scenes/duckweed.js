@@ -63,27 +63,7 @@ function setupDuckweed() {
   }
 }
 
-function displayDuckweed(pg = scene2D) {
-  pg.background(0);
-  // Repel from gator's center (between head and back) so duckweed parts around the full body
-  const rc = gator.x !== null ? gator.repelCenter() : { x: mouseX, y: mouseY };
-  const repellers = [{ x: rc.x, y: rc.y, radius: 500, strength: 2 }];
-
-  for (const p of duckweedParticles) {
-    p.update(repellers);
-  }
-
-  pg.fill(52, 120, 48);
-  pg.noStroke();
-  for (const p of duckweedParticles) {
-    pg.push();
-    pg.translate(p.x, p.y);
-    pg.rotate(p.rot);
-    pg.scale(p.sc);
-    pg.image(duckweedImgs[p.imgId], 0, 0);
-    pg.pop();
-  }
-
+function _updateGator(pg) {
   const hasPose = poseState.bodies.length > 0;
   if (hasPose) lastGatorPoseTime = millis();
 
@@ -106,5 +86,41 @@ function displayDuckweed(pg = scene2D) {
   }
 
   gator.update(targetX, targetY);
+}
+
+function displayDuckweedParticles(pg = scene2D) {
+  pg.background(0);
+
+  _updateGator(pg);
+
+  // Repel particles from gator body
+  const rc = gator.x !== null ? gator.repelCenter() : { x: mouseX, y: mouseY };
+  const repellers = [{ x: rc.x, y: rc.y, radius: 500, strength: 2 }];
+
+  for (const p of duckweedParticles) {
+    p.update(repellers);
+  }
+
+  pg.fill(52, 120, 48);
+  pg.noStroke();
+  for (const p of duckweedParticles) {
+    pg.push();
+    pg.translate(p.x, p.y);
+    pg.rotate(p.rot);
+    pg.scale(p.sc);
+    pg.image(duckweedImgs[p.imgId], 0, 0);
+    pg.pop();
+  }
+}
+
+function displayGatorOnly(pg = scene2D) {
+  pg.background(0);
+  _updateGator(pg);
+  gator.display(pg);
+}
+
+// Legacy combined function
+function displayDuckweed(pg = scene2D) {
+  displayDuckweedParticles(pg);
   gator.display(pg);
 }
