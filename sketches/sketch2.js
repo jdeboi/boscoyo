@@ -1,4 +1,4 @@
-const START_SCENE_ID = "pirogueOnly";
+const SKETCH_ID = "sketch2";
 
 let sk2PirogueX = 0;
 let sk2FacingRight = true;
@@ -28,7 +28,6 @@ function displaySk2(pg) {
 
   pg.push();
   pg.imageMode(pg.CENTER);
-  // pin to bottom: pirogue imgs are resized to h=500, so half-height at SC
   pg.translate(sk2PirogueX, pg.height - (500 * SC) / 2 + 50);
   if (!sk2FacingRight) pg.scale(-1, 1);
   pg.scale(SC);
@@ -39,20 +38,9 @@ function displaySk2(pg) {
 }
 
 function displaySk2Bird(pg) {
-  const dir = 4;
-  bird.displayFly(pg, dir);
-  bird.update(dir);
-}
+  bird.display(pg, 1);
+  bird.update(1);
 
-const scenes = [
-  { id: "pirogueOnly", durationSeconds: 20, draw: displaySk2 },
-  {
-    id: "birdWalk",
-    durationSeconds: 20,
-    draw: displaySk2Bird,
-    onEnter: () => {
-      bird.x = 0;
-      bird.y = scene2D.height - 180;
-    },
-  },
-];
+  flyBird.display(pg, 4);
+  flyBird.update(4);
+}

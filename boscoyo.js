@@ -55,6 +55,8 @@ let syncSocket = null;
 let lastSyncedSceneIndex = -1;
 
 let director;
+let lastPoseSyncTime = 0;
+const POSE_SYNC_INTERVAL_MS = 50; // send pose at 20fps max
 
 const trees = [];
 
@@ -74,45 +76,114 @@ function preload() {
   fullBaldTreeImg = loadImage("./assets/trees/fullBaldTree.png");
 
   font = loadFont("./assets/fonts/PARISREBEL.ttf");
-  for (let i = 1; i < 13; i++) {
-    bird.imgs[i - 1] = loadImage("./assets/bird/walk/" + i + ".png");
+  for (let i = 0; i < 12; i++) {
+    bird.imgs[i] = loadImage("./assets/bird/walk2_invert/" + i + ".png");
   }
   for (let i = 0; i < 6; i++) {
-    // bird.flyImgs[i] = loadImage("./assets/bird/fly/" + i + "_white.png");
-    bird.flyImgs[i] = loadImage("./assets/bird/fly/" + i + ".png");
+    flyBird.imgs[i] = loadImage("./assets/bird/fly/" + i + ".png");
   }
   for (let i = 0; i < 6; i++) {
     pirogue.imgs[i] = loadImage("./assets/Pirogues/" + i + ".png");
   }
 }
-function initPoseSystem() {
+
+function resizeImages() {
+  for (let i = 0; i < bird.imgs.length; i++) {
+    bird.imgs[i].resize(0, 180);
+  }
+  for (let i = 0; i < flyBird.imgs.length; i++) {
+    flyBird.imgs[i].resize(0, 120);
+  }
+  for (let i = 0; i < pirogue.imgs.length; i++) {
+    pirogue.imgs[i].resize(0, 500);
+  }
+  const treeSz = 1;
+  // resize tree images to ~2x their display size for perf (scale * 2 + buffer)
+  fullTreeImg.resize(0, Math.round(fullTreeImg.height * 0.22 * treeSz));
+  croppedTreeTallImg.resize(
+    0,
+    Math.round(croppedTreeTallImg.height * 0.4 * treeSz),
+  );
+  leaningTreeImg.resize(0, Math.round(leaningTreeImg.height * 0.4 * treeSz));
+  fullBaldTreeImg.resize(0, Math.round(fullBaldTreeImg.height * 0.25 * treeSz));
+}
+async function initPoseSystem() {
   setStatus("Starting camera...");
-  mlVideo = createCapture(VIDEO);
-  mlVideo.size(480, 360);
+
+  // Enumerate devices to prefer USB camera over built-in
+  let deviceId;
+  try {
+    // Need a permission grant first before labels are visible
+    await navigator.mediaDevices.getUserMedia({ video: true });
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter((d) => d.kind === "videoinput");
+    console.log(
+      "Available cameras:",
+      cameras.map((c) => c.label),
+    );
+    // Prefer anything that isn't the built-in / FaceTime camera
+    const usb = cameras.find(
+      (c) =>
+        !c.label.toLowerCase().includes("facetime") &&
+        !c.label.toLowerCase().includes("built-in"),
+    );
+    deviceId = usb?.deviceId ?? cameras[0]?.deviceId;
+    if (usb) setStatus(`Using: ${usb.label}`);
+  } catch (e) {
+    console.warn("Camera enumeration failed, using default", e);
+  }
+
+  const constraints = {
+    video: {
+      width: 480,
+      height: 360,
+      frameRate: { ideal: 15, max: 20 }, // cap inference rate to reduce GPU load
+      ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+    },
+  };
+
+  mlVideo = createCapture(constraints);
   mlVideo.hide();
 
-  bodyPose.detectStart(mlVideo, (results) => {
-    mlPoses = results;
-    poseFrameCount++;
-    if (!poseReady) {
-      poseReady = true;
-      setStatus("Pose system ready");
-    }
-    updatePoseState();
-    sendPoseSync();
-  });
+  mlVideo.elt.onloadedmetadata = () => {
+    bodyPose.detectStart(mlVideo, (results) => {
+      mlPoses = results;
+      if (!poseReady) {
+        poseReady = true;
+        setStatus("Pose system ready");
+      }
+      updatePoseState();
+      sendPoseSync();
+    });
+  };
 }
 
 function setup() {
   pixelDensity(1);
-  const c = createCanvas(windowWidth, windowHeight, WEBGL);
-  scene2D = createGraphics(width, height);
+  resizeImages();
+
+  let cW = windowWidth;
+  let cH = windowHeight;
+
+  // if (SKETCH_ID == "sketch1" || SKETCH_ID == "sketch2") {
+  //   cW = 1280;
+  //   cH = 800;
+  // }
+
+  const c = createCanvas(cW, cH, WEBGL);
+  scene2D = createGraphics(cW, cH);
+  scene2D.pixelDensity(1);
 
   c.position(0, 0);
   c.style("position", "fixed");
   c.style("left", "0");
   c.style("top", "0");
   c.style("z-index", "0");
+
+  const scenes = sceneCoordinator.map((entry) => {
+    const config = entry[SKETCH_ID] ?? { draw: (pg) => pg.background(0) };
+    return { id: entry.id, durationSeconds: entry.durationSeconds, ...config };
+  });
 
   director = new SceneDirector(
     scenes,
@@ -128,9 +199,6 @@ function setup() {
 
   createLayeredStars(scene2D);
 
-  for (let i = 0; i < 6; i++) {
-    pirogue.imgs[i].resize(0, 800);
-  }
   pirogue.y = 100;
 
   initTrees(scene2D);
@@ -141,12 +209,23 @@ function setup() {
   setupPirogueScene(scene2D);
 
   initProjectionMapper();
-  pMapper.load("maps/map.json");
+  // pMapper.load("maps/map.json");
   initSync();
 
   if (syncRole === "leader") initPoseSystem();
 }
+let _pt = {};
+let _ptLast = 0;
+function _t(label) {
+  const now = performance.now();
+  if (_pt._last) _pt[label] = (_pt[label] ?? 0) + (now - _pt._last);
+  _pt._last = now;
+}
+
 function draw() {
+  const _frameStart = performance.now();
+  _pt._last = _frameStart;
+
   if (mouseMode && syncRole !== "follower") {
     const mouseBody = {
       bodyCenter: { x: mouseX, y: mouseY },
@@ -169,7 +248,9 @@ function draw() {
 
   scene2D.push();
   scene2D.background(0);
+  _t("bg");
 
+  // TEST A: comment this block out — does display get fast?
   const activeSceneId = director.scenes[director.activeIndex]?.id;
   const scenesWithoutStars = [
     "duckweed",
@@ -177,11 +258,14 @@ function draw() {
     "pirogueScene",
     "pirogueOnly",
   ];
+  // TEST A1: comment out stars
   if (!scenesWithoutStars.includes(activeSceneId)) drawStars(scene2D);
-  // noCursor();
+  _t("stars");
 
+  // TEST A2: comment out scene
   director.update(deltaTime, scene2D);
   director.draw(scene2D);
+  _t("scene");
 
   if (syncRole === "leader" && director.activeIndex !== lastSyncedSceneIndex) {
     lastSyncedSceneIndex = director.activeIndex;
@@ -198,17 +282,34 @@ function draw() {
     scene2D.rect(0, 0, scene2D.width, scene2D.height);
     scene2D.pop();
   }
+  // END TEST A
 
   scene2D.pop();
 
+  // TEST B: comment this block out — does fps recover without any display?
   if (previewMode) {
     image(scene2D, -width / 2, -height / 2, width, height);
   } else {
     mappedSurface1.displayTexture(scene2D, 0, 0, width / 2, height);
     mappedSurface2.displayTexture(scene2D, width / 2, 0, width / 2, height);
   }
+  // END TEST B
+  _t("display");
+
   displayFrameRate();
   pop();
+
+  // log timing breakdown once per second
+  const now = performance.now();
+  if (now - _ptLast > 1000) {
+    const total = now - _ptLast;
+    const frames = renderFrameCount - lastRenderCount + 1;
+    console.log(
+      `frame budget — bg:${(_pt.bg ?? 0).toFixed(1)}ms  stars:${(_pt.stars ?? 0).toFixed(1)}ms  scene:${(_pt.scene ?? 0).toFixed(1)}ms  display:${(_pt.display ?? 0).toFixed(1)}ms  (${frames}fps)`,
+    );
+    _pt = {};
+    _ptLast = now;
+  }
 }
 
 function updateFPS() {
@@ -224,7 +325,7 @@ function updateFPS() {
   }
 }
 function displayFrameRate() {
-  if (!debugMode) return;
+  // if (!debugMode) return;
   updateFPS();
   fill("red");
   noStroke();
@@ -252,20 +353,32 @@ function debugPose(pg = scene2D) {
     return;
   }
 
-  const landmarks = [
-    { pt: poseState.nose, label: "nose", col: [255, 80, 80] },
-    { pt: poseState.leftWrist, label: "left wrist", col: [80, 255, 80] },
-    { pt: poseState.rightWrist, label: "right wrist", col: [80, 180, 255] },
-    { pt: poseState.bodyCenter, label: "body center", col: [255, 255, 80] },
-  ];
+  if (mouseMode) {
+    const pt = poseState.bodyCenter;
+    if (pt) {
+      pg.fill(255, 140, 0);
+      pg.noStroke();
+      pg.circle(pt.x, pt.y, 24);
+      pg.textSize(14);
+      pg.fill(255, 140, 0);
+      pg.text("mouse", pt.x + 16, pt.y + 5);
+    }
+  } else {
+    const landmarks = [
+      { pt: poseState.nose, label: "nose", col: [255, 80, 80] },
+      { pt: poseState.leftWrist, label: "left wrist", col: [80, 255, 80] },
+      { pt: poseState.rightWrist, label: "right wrist", col: [80, 180, 255] },
+      { pt: poseState.bodyCenter, label: "body center", col: [255, 255, 80] },
+    ];
 
-  for (const { pt, label, col } of landmarks) {
-    if (!pt) continue;
-    pg.fill(...col);
-    pg.noStroke();
-    pg.circle(pt.x, pt.y, 24);
-    pg.textSize(14);
-    pg.text(label, pt.x + 16, pt.y + 5);
+    for (const { pt, label, col } of landmarks) {
+      if (!pt) continue;
+      pg.fill(...col);
+      pg.noStroke();
+      pg.circle(pt.x, pt.y, 24);
+      pg.textSize(14);
+      pg.text(label, pt.x + 16, pt.y + 5);
+    }
   }
 
   pg.pop();
@@ -279,9 +392,11 @@ function createLayeredStars(scene) {
 }
 
 function drawStars(pg) {
+  const t = millis() / 1000;
+  pg.noStroke();
   for (let s of stars) {
-    s.update(pg);
-    s.display(xPosition, pg);
+    s.update(t);
+    s.display(xPosition);
   }
 }
 
@@ -383,15 +498,21 @@ function keyPressed() {
       pMapper.save("map.json");
       break;
     case "ArrowRight": {
+      if (syncRole !== "leader" && syncRole !== null) return false;
       const next = (director.activeIndex + 1) % director.scenes.length;
       director.goToScene(director.scenes[next].id);
+      sendSceneSync();
+      lastSyncedSceneIndex = director.activeIndex;
       return false;
     }
     case "ArrowLeft": {
+      if (syncRole !== "leader" && syncRole !== null) return false;
       const prev =
         (director.activeIndex - 1 + director.scenes.length) %
         director.scenes.length;
       director.goToScene(director.scenes[prev].id);
+      sendSceneSync();
+      lastSyncedSceneIndex = director.activeIndex;
       return false;
     }
   }
@@ -406,6 +527,7 @@ function initBird(pg = scene2D) {
 }
 
 function scaleLandmark(kp) {
+  if (!kp || !mlVideo) return null;
   // ml5 returns pixel coords in video space; scale to canvas
   const x = kp.x * (width / mlVideo.width);
   return {
@@ -551,6 +673,7 @@ function initSync() {
     if (syncRole !== "follower") return;
     const msg = JSON.parse(data);
     if (msg.type === "scene") {
+      console.log("received scene →", msg.sceneId);
       director.goToScene(msg.sceneId, { localSeconds: msg.localMs / 1000 });
       lastSyncedSceneIndex = director.activeIndex;
     } else if (msg.type === "pose") {
@@ -590,6 +713,9 @@ function sendPoseSync() {
     syncSocket.readyState !== WebSocket.OPEN
   )
     return;
+  const now = millis();
+  if (now - lastPoseSyncTime < POSE_SYNC_INTERVAL_MS) return;
+  lastPoseSyncTime = now;
   syncSocket.send(
     JSON.stringify({
       type: "pose",
@@ -602,21 +728,23 @@ function sendPoseSync() {
 }
 
 function sendSceneSync() {
-  if (
-    syncRole !== "leader" ||
-    !syncSocket ||
-    syncSocket.readyState !== WebSocket.OPEN
-  )
+  if (syncRole !== "leader") {
+    console.log("sendSceneSync: not leader, skipping");
     return;
+  }
+  if (!syncSocket || syncSocket.readyState !== WebSocket.OPEN) {
+    console.warn("sendSceneSync: socket not open");
+    return;
+  }
   const active = director.scenes[director.activeIndex];
   if (!active) return;
-  syncSocket.send(
-    JSON.stringify({
-      type: "scene",
-      sceneId: active.id,
-      localMs: director.t - active.startMs,
-    }),
-  );
+  const msg = {
+    type: "scene",
+    sceneId: active.id,
+    localMs: director.t - active.startMs,
+  };
+  console.log("sendSceneSync →", msg);
+  syncSocket.send(JSON.stringify(msg));
 }
 
 function initProjectionMapper() {

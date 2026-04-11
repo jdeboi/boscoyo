@@ -13,9 +13,7 @@ class Star {
     this.phase = random(TWO_PI); // so they’re not in sync
   }
 
-  update() {
-    // use time in seconds for smoother behavior
-    const t = this.pg.millis() / 1000;
+  update(t) {
     const a =
       this.baseAlpha +
       this.twinkleAmp * this.pg.sin(this.twinkleSpeed * t + this.phase);
@@ -24,9 +22,8 @@ class Star {
 
   display(xOffset) {
     let parallaxX = this.x - xOffset / this.depth;
-    let px = ((parallaxX % width) + width) % width; // wrap around
+    let px = ((parallaxX % width) + width) % width;
     this.pg.fill(255, this.alpha);
-    this.pg.noStroke();
     this.pg.circle(px, this.y, this.size);
   }
 }

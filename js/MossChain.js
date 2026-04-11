@@ -285,9 +285,10 @@ class MossChain {
   }
 
   display(pg = this.pg) {
-    // Draw constraints
+    pg.noFill();
     pg.stroke(this.col);
     pg.strokeWeight(2);
+
     for (let constraint of this.constraints) {
       pg.line(
         constraint.nodeA.x,
@@ -297,11 +298,9 @@ class MossChain {
       );
     }
 
-    // Draw nodes and their leaves
     for (let node of this.nodes) {
-      // Display leaves
       for (let leaf of node.leaves) {
-        leaf.display(node.x, node.y, this.col, pg);
+        leaf.display(node.x, node.y, pg);
       }
     }
   }
@@ -391,30 +390,18 @@ class Leaf {
     }
   }
 
-  display(nodeX, nodeY, col) {
-    this.pg.stroke(col);
-    this.pg.strokeWeight(2);
+  display(nodeX, nodeY, pg = this.pg) {
+    // stroke/strokeWeight/noFill already set by MossChain.display()
+    const cosA = pg.cos(this.angle);
+    const sinA = pg.sin(this.angle);
+    const endX = nodeX + cosA * this.length;
+    const endY = nodeY + sinA * this.length;
+    const curlX = nodeX + cosA * (this.length / 2) + this.curvature * this.direction * sinA * this.length;
+    const curlY = nodeY + sinA * (this.length / 2) - this.curvature * this.direction * cosA * this.length;
 
-    let startX = nodeX;
-    let startY = nodeY;
-    let endX = startX + this.pg.cos(this.angle) * this.length;
-    let endY = startY + this.pg.sin(this.angle) * this.length;
-
-    // Calculate control points for curling
-    let midX = startX + this.pg.cos(this.angle) * (this.length / 2);
-    let midY = startY + this.pg.sin(this.angle) * (this.length / 2);
-    let curlX =
-      midX +
-      this.curvature * this.direction * this.pg.sin(this.angle) * this.length;
-    let curlY =
-      midY -
-      this.curvature * this.direction * this.pg.cos(this.angle) * this.length;
-
-    // Draw the curled leaf as a quadratic curve
-    this.pg.noFill();
-    this.pg.beginShape();
-    this.pg.vertex(startX, startY);
-    this.pg.quadraticVertex(curlX, curlY, endX, endY);
-    this.pg.endShape();
+    pg.beginShape();
+    pg.vertex(nodeX, nodeY);
+    pg.quadraticVertex(curlX, curlY, endX, endY);
+    pg.endShape();
   }
 }

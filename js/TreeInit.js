@@ -1,5 +1,5 @@
 function getFullTree(x, pg) {
-  const treeScale = 0.22;
+  const treeScale = 1;
   const mossLocations = [
     { x: 90, y: 390, numSegments: 5, mossScale: 0.65 },
     { x: 210, y: 120, numSegments: 4, mossScale: 0.5 },
@@ -9,7 +9,7 @@ function getFullTree(x, pg) {
 }
 
 function getCroppedTreeFull(x, pg) {
-  const treeScale = 0.4;
+  const treeScale = 1;
   const mossLocations = [
     { x: 100, y: 70, numSegments: 5, mossScale: 0.8 },
     { x: 600, y: 190, numSegments: 4, mossScale: 0.8 },
@@ -19,7 +19,7 @@ function getCroppedTreeFull(x, pg) {
 }
 
 function getLeaningTree(x, pg) {
-  const treeScale = 0.4;
+  const treeScale = 1;
   const mossLocations = [
     { x: 162, y: 115, numSegments: 5, mossScale: 0.65 },
     { x: 420, y: 195, numSegments: 4, mossScale: 0.75 },
@@ -30,7 +30,7 @@ function getLeaningTree(x, pg) {
 }
 
 function getFullBaldTree(x, pg) {
-  const treeScale = 0.25;
+  const treeScale = 0.5;
   const mossLocations = [
     { x: 110, y: 140, numSegments: 5, mossScale: 0.6 },
     { x: 50, y: 320, numSegments: 4, mossScale: 0.72 },
@@ -41,8 +41,6 @@ function getFullBaldTree(x, pg) {
 }
 
 function initTrees(pg = scene2D) {
-  //   fullTreeImg.resize(fullTreeImg.width * 0.4, 0);
-
   let x = 0;
   for (let i = 0; i < 6; i++) {
     let tree;

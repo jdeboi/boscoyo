@@ -1,6 +1,8 @@
 const duckweedParticles = [];
 let gatorFacingRight = true;
 let prevGatorX = null;
+let gatorSmoothX = null;
+let gatorSmoothY = null;
 
 class DuckweedParticle {
   constructor(x, y) {
@@ -10,13 +12,19 @@ class DuckweedParticle {
     this.oy = y;
     this.vx = 0;
     this.vy = 0;
-    this.w = random(8, 18);
-    this.h = this.w * random(0.5, 0.8);
+    this.rot = random(this.TWO_PI);
+    this.sc = random(0.2, 0.5);
+    this.imgId = floor(random(duckweedImgs.length));
   }
 
   update(repellers) {
     const damping = 0.78;
     const spring = 0.008;
+
+    // gentle wave drift
+    const t = millis() * 0.0006;
+    this.vx += sin(t + this.oy * 0.018) * 0.04;
+    this.vy += sin(t * 0.7 + this.ox * 0.015) * 0.025;
 
     // spring back to origin
     this.vx += (this.ox - this.x) * spring;
@@ -59,13 +67,13 @@ function setupDuckweed() {
 
 function displayDuckweed(pg = scene2D) {
   pg.background(0);
-
-  const repellers = [{ x: mouseX, y: mouseY, radius: 220, strength: 1.5 }];
+  const radius = 400;
+  const repellers = [{ x: mouseX, y: mouseY, radius: radius, strength: 1.5 }];
   for (const body of poseState.bodies) {
     repellers.push({
       x: body.bodyCenter.x,
       y: body.bodyCenter.y,
-      radius: 220,
+      radius: radius,
       strength: 1.5,
     });
   }
@@ -77,26 +85,47 @@ function displayDuckweed(pg = scene2D) {
   pg.fill(52, 120, 48);
   pg.noStroke();
   for (const p of duckweedParticles) {
-    pg.rect(p.x - p.w / 2, p.y - p.h / 2, p.w, p.h);
-  }
-
-  // draw one gator per interaction point
-  const gatorPoints =
-    poseState.bodies.length > 0
-      ? poseState.bodies.map((b) => b.bodyCenter)
-      : [{ x: mouseX, y: mouseY }];
-
-  if (prevGatorX !== null && gatorPoints[0].x !== prevGatorX) {
-    gatorFacingRight = gatorPoints[0].x > prevGatorX;
-  }
-  prevGatorX = gatorPoints[0].x;
-
-  pg.imageMode(pg.CENTER);
-  for (const pt of gatorPoints) {
     pg.push();
-    pg.translate(pt.x, pt.y);
-    if (!gatorFacingRight) pg.scale(-1, 1);
-    pg.image(gatorImg, 0, 0, 120, 80);
+    pg.translate(p.x, p.y);
+    pg.rotate(p.rot);
+    pg.scale(p.sc);
+    pg.image(duckweedImgs[p.imgId], 0, 0);
     pg.pop();
   }
+
+  // smooth gator toward target (single gator, first body or mouse)
+  const rawTarget =
+    poseState.bodies.length > 0
+      ? poseState.bodies[0].bodyCenter
+      : { x: mouseX, y: mouseY };
+
+  const gatorW = gatorImg ? gatorImg.width / 2 : 60;
+  const gatorH = gatorImg ? gatorImg.height / 2 : 40;
+  const targetX = constrain(rawTarget.x, gatorW, pg.width - gatorW);
+  const targetY = constrain(rawTarget.y, gatorH, pg.height - gatorH);
+
+  if (gatorSmoothX === null) {
+    gatorSmoothX = targetX;
+    gatorSmoothY = targetY;
+  }
+
+  const lerpAmt = 0.06;
+  const prevSmoothedX = gatorSmoothX;
+  gatorSmoothX = lerp(gatorSmoothX, targetX, lerpAmt);
+  gatorSmoothY = lerp(gatorSmoothY, targetY, lerpAmt);
+
+  if (prevGatorX !== null && abs(gatorSmoothX - prevSmoothedX) > 0.05) {
+    gatorFacingRight = gatorSmoothX > prevSmoothedX;
+  }
+  prevGatorX = gatorSmoothX;
+
+  const gatorBob = sin(millis() * 0.0015) * 5;
+
+  pg.imageMode(pg.CENTER);
+  pg.push();
+  pg.translate(gatorSmoothX, gatorSmoothY + gatorBob);
+  if (!gatorFacingRight) pg.scale(-1, 1);
+  pg.scale(0.5);
+  pg.image(gatorImg, 0, 0);
+  pg.pop();
 }

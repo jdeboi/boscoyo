@@ -13,16 +13,23 @@ const budScales = [0.8, 1, 1];
 const lotusPlantsFront = [];
 const lotusPlantsBack = [];
 
+const duckweedImgs = [];
+
 function loadLotusImgs() {
   for (let i = 0; i < 3; i++) {
-    lotusLeafImgs[i] = loadImage(`./assets/lotus/lotusleaf/${i}.png`);
     budImgs[i] = loadImage(`./assets/lotus/buds/${i}.png`);
+  }
+  for (let i = 0; i < 7; i++) {
+    lotusLeafImgs[i] = loadImage(`./assets/lotus/lotusleaf/${i}.png`);
   }
   for (let i = 0; i < 5; i++) {
     lotusFlowerImgs[i] = loadImage(`./assets/lotus/lotusflower/${i}.png`);
   }
   for (let i = 0; i < 5; i++) {
     lillyPadImgs[i] = loadImage(`./assets/lotus/lillypad/${i}.png`);
+  }
+  for (let i = 5; i < 11; i++) {
+    duckweedImgs[i - 5] = loadImage(`./assets/duckweed/${i}.png`);
   }
 }
 

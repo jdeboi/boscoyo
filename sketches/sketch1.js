@@ -1,86 +1,6 @@
-const START_SCENE_ID = "treeSpan";
+const SKETCH_ID = "sketch1";
 
 let treeY = 0;
-
-const scenes = [
-  {
-    id: "treeSpan",
-    durationSeconds: 90,
-    draw: displayTreeSpan,
-  },
-  {
-    id: "birdBigTree1",
-    durationSeconds: 15,
-    draw: displayBirdBigTree1,
-    onEnter: () => {
-      bird.x = 0;
-    },
-  },
-  {
-    id: "pirogue",
-    durationSeconds: 25,
-    draw: displayPirogueBig,
-    onEnter: () => {
-      xPosition = 0;
-      pirogue.x = -400;
-    },
-  },
-  {
-    id: "lotus",
-    durationSeconds: 20,
-    draw: displayLotus,
-  },
-  {
-    id: "duckweed",
-    durationSeconds: 30,
-    draw: displayDuckweed,
-  },
-  {
-    id: "moss",
-    durationSeconds: 30,
-    draw: displayMossScene,
-  },
-  {
-    id: "pirogueScene",
-    durationSeconds: 30,
-    draw: displayPirogueScene,
-  },
-  {
-    id: "bigTreeQuestions",
-    durationSeconds: 8,
-    draw: displayBigTreeQuestionsNo,
-    onEnter: (pg) => {
-      bird.x = pg.width - 500;
-      bird.y = pg.height / 2;
-    },
-  },
-  {
-    id: "bigTreeQuestions2",
-    durationSeconds: 8,
-    draw: displayBigTreeQuestionsNo,
-  },
-  {
-    id: "bigTreeQuestions3",
-    durationSeconds: 4,
-    draw: displayBigTreeQuestionsNo,
-    onExit: (pg) => {
-      bird.x = 0;
-      bird.y = pg.height - 180;
-    },
-  },
-  {
-    id: "treesAndPirogue",
-    durationSeconds: 20,
-    draw: displayPirogue,
-    onEnter: () => {
-      xPosition = 0;
-      pirogue.x = 0;
-    },
-    onExit: () => {
-      resetAnimation();
-    },
-  },
-];
 
 function displayQuestion(question, pg) {
   xPosition--;
@@ -118,7 +38,6 @@ function displayPirogue(pg) {
   xPosition--;
 
   pg.push();
-
   pg.scale(0.5);
   pirogue.display(pg);
   pirogue.update();
