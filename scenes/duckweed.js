@@ -1,4 +1,6 @@
 const duckweedParticles = [];
+let lastGatorPoseTime = 0;
+const GATOR_AUTO_TIMEOUT = 10000; // ms without pose before auto-swim kicks in
 
 class DuckweedParticle {
   constructor(x, y) {
@@ -63,16 +65,9 @@ function setupDuckweed() {
 
 function displayDuckweed(pg = scene2D) {
   pg.background(0);
-  const radius = 400;
-  const repellers = [{ x: mouseX, y: mouseY, radius: radius, strength: 1.5 }];
-  for (const body of poseState.bodies) {
-    repellers.push({
-      x: body.bodyCenter.x,
-      y: body.bodyCenter.y,
-      radius: radius,
-      strength: 1.5,
-    });
-  }
+  // Repel from gator's center (between head and back) so duckweed parts around the full body
+  const rc = gator.x !== null ? gator.repelCenter() : { x: mouseX, y: mouseY };
+  const repellers = [{ x: rc.x, y: rc.y, radius: 500, strength: 2 }];
 
   for (const p of duckweedParticles) {
     p.update(repellers);
@@ -89,14 +84,26 @@ function displayDuckweed(pg = scene2D) {
     pg.pop();
   }
 
-  const rawTarget =
-    poseState.bodies.length > 0
+  const hasPose = poseState.bodies.length > 0;
+  if (hasPose) lastGatorPoseTime = millis();
+
+  const autoMode =
+    !mouseMode &&
+    (!cameraActive || millis() - lastGatorPoseTime > GATOR_AUTO_TIMEOUT);
+
+  let targetX, targetY;
+  if (autoMode) {
+    const auto = gator.autoTarget(pg);
+    targetX = auto.x;
+    targetY = auto.y;
+  } else {
+    const rawTarget = hasPose
       ? poseState.bodies[0].bodyCenter
       : { x: mouseX, y: mouseY };
-
-  const margin = 80;
-  const targetX = constrain(rawTarget.x, margin, pg.width - margin);
-  const targetY = constrain(rawTarget.y, margin, pg.height - margin);
+    const margin = 80;
+    targetX = constrain(rawTarget.x, margin, pg.width - margin);
+    targetY = constrain(rawTarget.y, margin, pg.height - margin);
+  }
 
   gator.update(targetX, targetY);
   gator.display(pg);
