@@ -607,7 +607,6 @@ function keyPressed() {
 
 async function showtime() {
   // if we're calibrating, turn that off
-  console.log(pMapper);
   if (pMapper.calibrate) {
     pMapper.toggleCalibration();
   }
