@@ -23,6 +23,7 @@ const podOffsets = [
 // Render order: layer 0 → lily pads → layer 1 → layer 2
 const lotusLayers = [[], [], []];
 const lotusPads = [];
+const lotusOverlayPads = [];
 
 // Perspective: y maps linearly to a scale multiplier.
 // Tune Y_FAR/Y_NEAR to match your canvas, and SCALE_FAR/SCALE_NEAR for the depth feel.
@@ -106,7 +107,7 @@ function setupLotus() {
       z: 100,
       timeOffset: -17000,
       isFlipped: true,
-      stemLen: 90,
+      stemLen: 80,
     },
     { type: "pod", x: 1, z: 5, timeOffset: -4200, isFlipped: true },
     {
@@ -176,39 +177,100 @@ function setupLotus() {
       30,
       (scene2D.width || 1200) - lillyPadImgs[index].width * perspS - 30,
     );
-    lotusPads.push(
-      new LillyPad(
-        lillyPadImgs[index],
-        i,
-        xPos,
-        y,
-        perspS,
-        "lillypad",
-        isFlipped,
-      ),
+    const pad = new LillyPad(
+      lillyPadImgs[index],
+      i,
+      xPos,
+      y,
+      perspS,
+      "lillypad",
+      isFlipped,
     );
+    lotusPads.push(pad);
+    if (z >= 85) lotusOverlayPads.push(pad);
   }
 
   // Sort each group by y so further-back items (smaller y) are drawn first
   lotusLayers.forEach((layer) => layer.sort((a, b) => a.y - b.y));
   lotusPads.sort((a, b) => a.y - b.y);
+
+  // Three blooming front-row flowers for sketchSplit
+  const splitDefs = [
+    { x: 20, z: 90, timeOffset: -17000, isFlipped: false, stemLen: 80 },
+    { x: 50, z: 100, timeOffset: -17000, isFlipped: true, stemLen: 90 },
+    { x: 80, z: 85, timeOffset: -17000, isFlipped: false, stemLen: 75 },
+  ];
+  for (const { x, z, timeOffset, isFlipped, stemLen } of splitDefs) {
+    const { y: tipY, scale } = get2DPosition(x, z);
+    const stemH = map(stemLen, 0, 100, 200, 650);
+    const baseY = tipY + LotusFlower.STEM_H * scale;
+    const y = baseY - stemH * scale;
+    const xPos = map(x, 0, 100, 100, (scene2D.width || 1200) - 200);
+    lotusSplitFlowers.push(
+      new LotusFlower(xPos, y, scale, timeOffset, isFlipped, stemLen),
+    );
+  }
+  lotusSplitFlowers.sort((a, b) => a.y - b.y);
+}
+
+const lotusSplitFlowers = [];
+
+function displayLotusSplit(pg = scene2D) {
+  const ix = getPoseX();
+
+  const windTarget = pg.map(ix, 0, pg.width, -0.2, 0.2);
+  lotusWind = pg.lerp(lotusWind, windTarget, 0.05);
+
+  pg.background(0);
+  // drawWaterBand(300, 0, pg);
+
+  for (const p of lotusPads) {
+    p.display(pg);
+    p.update();
+  }
+  for (const p of lotusSplitFlowers) {
+    p.display(pg);
+    p.update();
+  }
+}
+
+function displayLotusOverlay(pg = scene2D) {
+  const ix = getPoseX();
+  const windTarget = pg.map(ix, 0, pg.width, -0.2, 0.2);
+  lotusWind = pg.lerp(lotusWind, windTarget, 0.05);
+
+  pg.background(0);
+  // drawWaterBand(300, 0, pg);
+  for (const p of lotusOverlayPads) {
+    p.display(pg);
+    p.update();
+  }
+  displayFrontLotus(pg);
+}
+
+function displayFrontLotus(pg = scene2D) {
+  const arr = lotusLayers[2];
+  for (const p of arr) {
+    p.display(pg);
+    p.update();
+  }
 }
 
 function displayLotus(pg = scene2D) {
-  const ix =
-    poseState.bodies.length > 0
-      ? poseState.bodies.reduce((sum, b) => sum + b.bodyCenter.x, 0) /
-        poseState.bodies.length
-      : mouseX;
+  displayLotusNoFront(pg);
+  displayFrontLotus(pg);
+}
+
+function displayLotusNoFront(pg = scene2D) {
+  const ix = getPoseX();
   const windTarget = pg.map(ix, 0, pg.width, -0.2, 0.2);
   lotusWind = pg.lerp(lotusWind, windTarget, 0.05);
 
   pg.push();
-  pg.scale(0.56);
-  trees[1].display(500);
+  fullBaldTree.display(100, -100, 0.6);
   pg.pop();
 
-  drawWaterBand(300, 0, pg);
+  // drawWaterBand(300, 0, pg);
 
   const tick = (arr) => {
     for (const p of arr) {
@@ -219,7 +281,7 @@ function displayLotus(pg = scene2D) {
   tick(lotusLayers[0]);
   tick(lotusPads);
   tick(lotusLayers[1]);
-  tick(lotusLayers[2]);
+  // tick(lotusLayers[2]);
 }
 
 class Plant {

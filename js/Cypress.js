@@ -30,36 +30,31 @@ class Cypress {
     }
   }
 
-  display(xPosition, sc = 1) {
+  // x, y: canvas coordinates of the tree's top-left corner
+  // sc: additional scale on top of treeImgScale
+  display(x, y = this.y, sc = 1) {
+    if (y === undefined || y === null) y = this.y;
     this.pg.push();
-
-    // move to this tree's base point
-    this.pg.translate(this.x + xPosition, this.y);
-
+    this.pg.translate(x, y);
     this.pg.scale(sc);
+
     this.pg.push();
-
-    // scale the whole tree (and moss)
     this.pg.scale(this.treeImgScale, this.treeImgScale);
-
-    // draw tree at original size so scale() does all the work
     this.pg.image(this.img, 0, 0);
     this.pg.pop();
 
     const updatePhysics = frameCount % 2 === 0;
     this.mossBushes.forEach((mossBush) => {
       this.pg.push();
-      this.pg.translate(mossBush.localX, mossBush.localY);
       mossBush.display();
       this.pg.pop();
-
       if (updatePhysics) mossBush.update(0.5);
     });
 
     this.pg.pop();
   }
 
-  getWidth() {
-    return this.img.width * this.treeImgScale;
+  getWidth(sc = 1) {
+    return this.img.width * this.treeImgScale * sc;
   }
 }

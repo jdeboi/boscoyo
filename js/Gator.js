@@ -17,6 +17,7 @@ class Gator {
   }
 
   display(pg) {
+    pg.push();
     const t = millis() * 0.001;
     const bob = sin(t * 1.5) * 5;
     const flip = 1;
@@ -24,6 +25,7 @@ class Gator {
     this._drawTail(pg, t, bob, flip);
     this._drawBack(pg, t, bob, flip);
     this._drawHead(pg, bob, flip);
+    pg.pop();
   }
 
   // Returns noise-driven wander target when no pose is present

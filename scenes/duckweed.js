@@ -1,7 +1,5 @@
 const duckweedParticles = [];
 let lastGatorPoseTime = 0;
-const GATOR_AUTO_TIMEOUT = 10000; // ms without pose before auto-swim kicks in
-
 class DuckweedParticle {
   constructor(x, y) {
     this.x = x;
@@ -64,22 +62,13 @@ function setupDuckweed() {
 }
 
 function _updateGator(pg) {
-  const hasPose = poseState.bodies.length > 0;
-  if (hasPose) lastGatorPoseTime = millis();
-
-  const autoMode =
-    !mouseMode &&
-    (!cameraActive || millis() - lastGatorPoseTime > GATOR_AUTO_TIMEOUT);
-
   let targetX, targetY;
-  if (autoMode) {
+  if (getIsAutoMove()) {
     const auto = gator.autoTarget(pg);
     targetX = auto.x;
     targetY = auto.y;
   } else {
-    const rawTarget = hasPose
-      ? poseState.bodies[0].bodyCenter
-      : { x: mouseX, y: mouseY };
+    const rawTarget = { x: getPoseX(), y: getPoseY() };
     const margin = 80;
     targetX = constrain(rawTarget.x, margin, pg.width - margin);
     targetY = constrain(rawTarget.y, margin, pg.height - margin);
@@ -119,7 +108,32 @@ function displayGatorOnly(pg = scene2D) {
   gator.display(pg);
 }
 
-// Legacy combined function
+function displayDuckweedSplit(pg = scene2D) {
+  pg.background(0);
+
+  const t = millis() * 0.001;
+  const targetX = pg.width * 0.5;
+  const targetY = pg.height * 0.5 + sin(t * 0.7) * pg.height * 0.28;
+  gator.update(targetX, targetY);
+
+  const rc = gator.repelCenter();
+  const repellers = [{ x: rc.x, y: rc.y, radius: 500, strength: 2 }];
+  for (const p of duckweedParticles) p.update(repellers);
+
+  pg.fill(52, 120, 48);
+  pg.noStroke();
+  for (const p of duckweedParticles) {
+    pg.push();
+    pg.translate(p.x, p.y);
+    pg.rotate(p.rot);
+    pg.scale(p.sc);
+    pg.image(duckweedImgs[p.imgId], 0, 0);
+    pg.pop();
+  }
+
+  gator.display(pg);
+}
+
 function displayDuckweed(pg = scene2D) {
   displayDuckweedParticles(pg);
   gator.display(pg);

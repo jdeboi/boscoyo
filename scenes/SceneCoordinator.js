@@ -1,117 +1,153 @@
 // Central scene registry — single source of truth for scene IDs and durations.
-// Each sketch key (sketch1/sketch2/sketchOverlay/sketchSplit) can have { draw, onEnter, onExit }.
+// Each sketch key (sketch1/sketch2/sketchOverlay/sketchSplit/sketch1Only) can have { draw, onEnter, onExit }.
 // Set to null to show a black screen on that sketch for that scene.
 //
-// IMPORTANT: sketch-specific draw functions must be wrapped in arrow functions
-// so the name is resolved lazily at call time, not at file load time.
-// Functions from shared scenes/ files (displayDuckweed etc.) can be referenced directly.
+// Functions from scenes/ files are safe to reference directly (loaded by all HTML files).
+// Functions from sketches/ files MUST use arrow wrappers: (pg) => fn(pg)
+// so the name is resolved lazily at call time, not at SceneCoordinator parse time.
 
-const START_SCENE_ID = "pirogueScene";
+const START_SCENE_ID = "moss";
 const DURATION = 1000;
 
 const sceneCoordinator = [
-  {
-    id: "treeSpan",
-    durationSeconds: DURATION,
-    sketch1: { draw: (pg) => displayTreeSpan(pg) },
-    sketch2: { draw: (pg) => displaySk2(pg) },
-    sketchOverlay: null,
-    sketchSplit: null,
-  },
-  {
-    id: "birdBigTree1",
-    durationSeconds: DURATION,
-    sketch1: {
-      draw: (pg) => displayBirdBigTree1(pg),
-      onEnter: () => {
-        bird.x = 0;
-      },
-    },
-    sketch2: {
-      draw: (pg) => displaySk2Bird(pg),
-      onEnter: () => {
-        bird.x = 0;
-        bird.y = scene2D.height - 180;
-      },
-    },
-    sketchOverlay: null,
-    sketchSplit: null,
-  },
-  {
-    id: "pirogue",
-    durationSeconds: DURATION,
-    sketch1: {
-      draw: (pg) => displayPirogueBig(pg),
-      onEnter: () => {
-        xPosition = 0;
-        pirogue.x = -400;
-      },
-    },
-    sketch2: null,
-    sketchOverlay: null,
-    sketchSplit: null,
-  },
-  {
-    id: "lotus",
-    durationSeconds: DURATION,
-    sketch1: { draw: displayLotus },
-    sketch2: null,
-    sketchOverlay: null,
-    sketchSplit: null,
-  },
-  {
-    id: "duckweed",
-    durationSeconds: DURATION,
-    sketch1: { draw: displayDuckweedParticles },
-    sketch2: { draw: displayDuckweedParticles },
-    sketchOverlay: { draw: displayGatorOnly },
-    sketchSplit: null,
-  },
   {
     id: "moss",
     durationSeconds: DURATION,
     sketch1: { draw: displayMossScene },
     sketch2: { draw: displayMossScene },
     sketchOverlay: null,
-    sketchSplit: null,
+    sketchSplit: { draw: displayMossScene },
+    sketch1Only: { draw: displayMossScene },
   },
   {
-    id: "pirogueScene",
+    id: "treesMoving1",
     durationSeconds: DURATION,
-    sketch1: { draw: displayPirogueScene },
-    sketch2: null,
+    sketch1: { draw: (pg) => displayTreesMoving(pg) },
+    sketch2: { draw: (pg) => displayTreesMoving(pg) },
     sketchOverlay: null,
-    sketchSplit: null,
+    sketchSplit: { draw: (pg) => displayTreesSplit(pg) },
+    sketch1Only: { draw: (pg) => displayTreesMoving(pg) },
+  },
+
+  {
+    id: "duckweed",
+    durationSeconds: DURATION,
+    sketch1: { draw: (pg) => displayDuckweedParticles(pg) },
+    sketch2: { draw: (pg) => displayDuckweedParticles(pg) },
+    sketchOverlay: { draw: (pg) => displayGatorOnly(pg) },
+    sketchSplit: { draw: (pg) => displayDuckweedSplit(pg) },
+    sketch1Only: { draw: (pg) => displayDuckweed(pg) },
   },
   {
-    id: "bigTreeQuestions",
+    id: "birdTree",
     durationSeconds: DURATION,
-    sketch1: {
-      draw: (pg) => displayBigTreeQuestionsNo(pg),
+    sketch1: { draw: (pg) => displayBigTree(pg) },
+    sketch2: { draw: (pg) => displayBigTree(pg) },
+    sketchOverlay: {
+      draw: (pg) => displayBirdOverlay(pg),
       onEnter: (pg) => {
-        bird.x = pg.width - 500;
-        bird.y = pg.height / 2;
+        bird.x = 0;
+        bird.scale = 1;
+        bird.setHeightFromBottom(50, pg);
       },
     },
-    sketch2: null,
-    sketchOverlay: null,
-    sketchSplit: null,
+    sketchSplit: {
+      draw: (pg) => displayBirdSplit(pg),
+      onEnter: (pg) => {
+        bird.x = 0;
+        bird.scale = 1;
+        bird.setHeightFromBottom(50, pg);
+      },
+    },
+    sketch1Only: {
+      draw: (pg) => displayBirdBigTree(pg),
+      onEnter: (pg) => {
+        bird.x = 0;
+        bird.scale = 0.8;
+        bird.setHeightFromBottom(0, pg);
+      },
+    },
   },
   {
-    id: "treesAndPirogue",
+    id: "treeBase",
     durationSeconds: DURATION,
-    sketch1: {
-      draw: (pg) => displayPirogue(pg),
-      onEnter: () => {
-        xPosition = 0;
+    sketch1: { draw: (pg) => displayTreeBase(pg) },
+    sketch2: { draw: (pg) => displayTreeBase(pg) },
+    sketchOverlay: {
+      draw: (pg) => displayPirogueOverlay(pg),
+      onEnter: (pg) => {
+        pirogue.setHeightFromBottom(0, pg);
         pirogue.x = 0;
-      },
-      onExit: () => {
-        resetAnimation();
+        pirogue.scale = 1;
       },
     },
-    sketch2: null,
+    sketchSplit: { draw: (pg) => displayTreeBaseSplit(pg) },
+    sketch1Only: {
+      draw: (pg) => displayTreeBasePirogue(pg),
+      onEnter: (pg) => {
+        pirogue.x = -400;
+        pirogue.scale = 1;
+        pirogue.setHeightFromBottom(0, pg);
+      },
+    },
+  },
+  {
+    id: "lotus",
+    durationSeconds: DURATION,
+    sketch1: { draw: displayLotusNoFront },
+    sketch2: { draw: displayLotusNoFront },
+    sketchOverlay: { draw: displayLotusOverlay },
+    sketchSplit: { draw: displayLotusSplit },
+    sketch1Only: { draw: displayLotus },
+  },
+  {
+    id: "treesMoving2",
+    durationSeconds: DURATION,
+    sketch1: { draw: (pg) => displayTreesMoving(pg) },
+    sketch2: { draw: (pg) => displayTreesMoving(pg) },
     sketchOverlay: null,
-    sketchSplit: null,
+    sketchSplit: { draw: (pg) => displayTreesSplit(pg) },
+    sketch1Only: { draw: (pg) => displayTreesMoving(pg) },
+  },
+
+  {
+    id: "flyingBird",
+    durationSeconds: DURATION,
+    sketch1: { draw: (pg) => displayTreeTop(pg) },
+    sketch2: { draw: (pg) => displayTreeTop(pg) },
+    sketchOverlay: { draw: (pg) => displayFlyingBirdOverlay(pg) },
+    sketchSplit: { draw: (pg) => displayFlyingSplit(pg) },
+    sketch1Only: {
+      draw: (pg) => displayTreeTopFlying(pg),
+      onEnter: (pg) => {
+        flyBird.x = pg.width - 500;
+        flyBird.y = pg.height / 2;
+      },
+    },
+  },
+  {
+    id: "reeds",
+    durationSeconds: DURATION,
+    sketch1: { draw: displayPirogueReeds },
+    sketch2: null,
+    sketchOverlay: {
+      draw: (pg) => displayPirogueOverlay(pg),
+      onEnter: (pg) => {
+        pirogue.setHeightFromBottom(0, pg);
+        pirogue.x = 0;
+        pirogue.scale = 1;
+      },
+    },
+    sketchSplit: { draw: (pg) => displayTreesSplit(pg) },
+    sketch1Only: {
+      draw: (pg) => {
+        displayPirogueScene(pg);
+      },
+      onEnter: (pg) => {
+        pirogue.setHeightFromBottom(0, pg);
+        pirogue.x = 0;
+        pirogue.scale = 1;
+      },
+    },
   },
 ];

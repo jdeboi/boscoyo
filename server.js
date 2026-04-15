@@ -21,6 +21,7 @@ const ROUTES = {
   "/sketch2": "sketch2.html",
   "/sketchOverlay": "sketchOverlay.html",
   "/sketchSplit":   "sketchSplit.html",
+  "/sketch1Only":   "sketch1Only.html",
   "/pose":    "pose.html",
 };
 

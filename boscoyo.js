@@ -11,12 +11,12 @@ let poseFPS = 0;
 let lastFPSTime = 0;
 let lastRenderCount = 0;
 let lastPoseCount = 0;
+let lastPoseTime = 0;
 
 const mappedSurfaces = [];
 let scene2D;
 
 let poseReady = false;
-const drawOutline = true;
 
 const poseState = {
   active: false,
@@ -36,6 +36,7 @@ let xPosition = 0;
 // imgs
 let croppedTreeTallImg;
 let fullTreeImg;
+let treeArmImg;
 let leaningTreeImg;
 let fullBaldTreeImg;
 let gatorHeadImg;
@@ -56,7 +57,9 @@ let invertPoseX = true; // mirror pose X coords; toggle with 'x'
 const _syncParams = new URLSearchParams(location.search);
 const syncRole = _syncParams.get("role"); // "leader" | "follower"
 const _syncHost = _syncParams.get("sync"); // optional leader IP for offline-local-server mode
-const SYNC_SERVER_URL = _syncHost ? `ws://${_syncHost}:8080` : `ws://${location.host}`;
+const SYNC_SERVER_URL = _syncHost
+  ? `ws://${_syncHost}:8080`
+  : `ws://${location.host}`;
 let syncSocket = null;
 let lastSyncedSceneIndex = -1;
 
@@ -81,13 +84,14 @@ function preload() {
   fullTreeImg = loadImage("./assets/trees/fullTree.png");
   leaningTreeImg = loadImage("./assets/trees/leaningTree.png");
   fullBaldTreeImg = loadImage("./assets/trees/fullBaldTree.png");
+  treeArmImg = loadImage("./assets/trees/arm.png");
 
   font = loadFont("./assets/fonts/PARISREBEL.ttf");
   for (let i = 0; i < 12; i++) {
-    bird.imgs[i] = loadImage("./assets/bird/walk2_invert/" + i + ".png");
+    bird.imgs[i] = loadImage("./assets/bird/walk2/" + i + ".png");
   }
   for (let i = 0; i < 6; i++) {
-    flyBird.imgs[i] = loadImage("./assets/bird/fly/" + i + ".png");
+    flyBird.imgs[i] = loadImage("./assets/bird/fly/" + i + "_white.png");
   }
   for (let i = 0; i < 6; i++) {
     pirogue.imgs[i] = loadImage("./assets/Pirogues/" + i + ".png");
@@ -96,23 +100,14 @@ function preload() {
 
 function resizeImages() {
   for (let i = 0; i < bird.imgs.length; i++) {
-    bird.imgs[i].resize(0, 180);
+    bird.imgs[i].resize(0, 400);
   }
   for (let i = 0; i < flyBird.imgs.length; i++) {
-    flyBird.imgs[i].resize(0, 120);
+    flyBird.imgs[i].resize(0, 300);
   }
   for (let i = 0; i < pirogue.imgs.length; i++) {
     pirogue.imgs[i].resize(0, 500);
   }
-  const treeSz = 1;
-  // resize tree images to ~2x their display size for perf (scale * 2 + buffer)
-  fullTreeImg.resize(0, Math.round(fullTreeImg.height * 0.22 * treeSz));
-  croppedTreeTallImg.resize(
-    0,
-    Math.round(croppedTreeTallImg.height * 0.4 * treeSz),
-  );
-  leaningTreeImg.resize(0, Math.round(leaningTreeImg.height * 0.4 * treeSz));
-  fullBaldTreeImg.resize(0, Math.round(fullBaldTreeImg.height * 0.25 * treeSz));
 }
 async function initPoseSystem() {
   if (cameraActive) return; // prevent double-start during async init
@@ -220,11 +215,6 @@ function setup() {
   let cW = windowWidth;
   let cH = windowHeight;
 
-  // if (SKETCH_ID == "sketch1" || SKETCH_ID == "sketch2") {
-  //   cW = 1280;
-  //   cH = 800;
-  // }
-
   const c = createCanvas(1280, 800, WEBGL);
   scene2D = createGraphics(c.width, c.height);
   scene2D.pixelDensity(1);
@@ -254,10 +244,7 @@ function setup() {
 
   createLayeredStars(scene2D);
 
-  pirogue.y = 100;
-
   initTrees(scene2D);
-  initBird(scene2D);
   setupLotus();
   setupDuckweed();
   setupMossScene(scene2D);
@@ -297,14 +284,12 @@ function draw() {
 
   // TEST A: comment this block out — does display get fast?
   const activeSceneId = director.scenes[director.activeIndex]?.id;
-  const scenesWithoutStars = [
-    "duckweed",
-    "moss",
-    "pirogueScene",
-    "pirogueOnly",
-  ];
+  const scenesWithoutStars = ["duckweed", "reeds", "pirogueOnly"];
   // TEST A1: comment out stars
-  if (!scenesWithoutStars.includes(activeSceneId)) drawStars(scene2D);
+  const isOverlay = SKETCH_ID === "sketchOverlay";
+  const isSplit = SKETCH_ID === "sketchSplit";
+  if (!scenesWithoutStars.includes(activeSceneId) && !(isOverlay || isSplit))
+    drawStars(scene2D);
 
   // TEST A2: comment out scene
   director.update(deltaTime, scene2D);
@@ -317,13 +302,17 @@ function draw() {
 
   if (debugMode) debugPose(scene2D);
 
-  if (drawOutline) {
+  if (debugMode) {
     scene2D.push();
     scene2D.noFill();
     scene2D.stroke(255);
     scene2D.strokeWeight(10);
     scene2D.rect(0, 0, scene2D.width, scene2D.height);
     scene2D.pop();
+
+    // if (isSplit) {
+    displaySplitOutline(scene2D);
+    // }
   }
   // END TEST A
 
@@ -366,8 +355,10 @@ function displayFrameRate() {
   text(`${renderFPS}`, 200, 150);
   text(`${poseFPS}`, 200, 380);
 
-  // text(`render FPS: ${renderFPS}`, width - 200, 150);
-  // text(`pose FPS: ${poseFPS}`, width - 200, 180);
+  const sceneId = director?.scenes[director.activeIndex]?.id ?? "";
+  textSize(60);
+  text(sceneId, 20, height - 30);
+  if (getIsAutoMove()) text("AUTO", 20, height - 100);
   pop();
 }
 
@@ -447,6 +438,8 @@ function drawWaterBand(
     noiseScaleX = 0.002, // horizontal noise frequency
     noiseSpeed = 0.0003, // animation speed over time
     hasOutline = false,
+    hasRipples = false,
+    rippleRows = 7, // number of ripple depth bands
   } = {},
 ) {
   if (bandDepth === null) bandDepth = height - yBase;
@@ -464,9 +457,6 @@ function drawWaterBand(
   pg.beginShape();
   // left bottom corner
   pg.vertex(-100, yBase + bandDepth);
-  // left side up into the wave
-  // (optional, but keeps shape nice and closed)
-  // vertex(0, yBase);
 
   for (let x = 0; x <= width + 50; x += step) {
     // worldX shifts with xPosition so the pattern "sticks" to the world
@@ -478,8 +468,65 @@ function drawWaterBand(
   }
 
   // right side back down to bottom
-  pg.vertex(width, yBase + bandDepth);
+  pg.vertex(width + 100, yBase + bandDepth);
   pg.endShape(CLOSE);
+
+  // --- animated ripples ---
+  if (!hasRipples) return;
+
+  const tSec = millis() * 0.001;
+  pg.noFill();
+
+  for (let row = 0; row < rippleRows; row++) {
+    const t_row = (row + 0.5) / rippleRows;
+    const rowY = yBase + t_row * bandDepth;
+
+    const rLen = lerp(14, 60, t_row); // stroke length
+    const rAmp = lerp(1.5, 6, t_row); // sine wave height
+    const sw = lerp(0.5, 2.0, t_row); // stroke weight
+    const maxAlpha = lerp(130, 255, t_row);
+    const spacing = lerp(42, 115, t_row); // x gap between ripples
+    const waveSpeed = lerp(1.2, 2.8, t_row); // how fast the sine phase advances
+
+    pg.strokeWeight(sw);
+
+    const stagger = (row % 2) * (spacing * 0.5);
+    const scroll =
+      (((xPosition * parallax * 0.35 + stagger) % spacing) + spacing) % spacing;
+
+    for (let lx = -spacing + scroll; lx < width + rLen; lx += spacing) {
+      // world-stable seed so each ripple keeps its identity as camera scrolls
+      const worldSlot = Math.round(
+        (lx + xPosition * parallax * 0.35) / spacing,
+      );
+      const seed = row * 53.7 + worldSlot * 91.3;
+
+      // independent lifecycle: sin²(phase) gives smooth 0→1→0 pulse
+      const cycleSpeed = lerp(0.35, 0.9, noise(seed * 0.17));
+      const lifePhase = tSec * cycleSpeed + noise(seed) * TWO_PI;
+      const pulse = pow(max(0, sin(lifePhase)), 2);
+      if (pulse < 0.04) continue;
+
+      pg.stroke(255, maxAlpha * pulse);
+
+      // small y jitter per slot, slowly drifting
+      const yJitter =
+        (noise(seed * 0.4, tSec * 0.08) - 0.5) * (bandDepth / rippleRows) * 0.5;
+      const ry = rowY + yJitter;
+
+      // phase advances over time → ripple crest slides horizontally
+      const wavePhase = tSec * waveSpeed + seed;
+
+      pg.beginShape();
+      for (let i = 0; i <= 10; i++) {
+        const fx = i / 10; // 0..1 along stroke length
+        const px = lx - rLen * 0.5 + fx * rLen;
+        const py = ry + sin(fx * TWO_PI + wavePhase) * rAmp;
+        pg.vertex(px, py);
+      }
+      pg.endShape();
+    }
+  }
 }
 
 function displayOutline(pg = scene2D) {
@@ -527,6 +574,9 @@ function keyPressed() {
       let fs = fullscreen();
       fullscreen(!fs);
       break;
+    case "t":
+      showtime();
+      break;
     case "l":
       pMapper.load("maps/map.json");
       break;
@@ -555,12 +605,21 @@ function keyPressed() {
   }
 }
 
-function initBird(pg = scene2D) {
-  bird.y = pg.height - 180;
-
-  for (let i = 0; i < bird.imgs.length; i++) {
-    bird.imgs[i].resize(0, 180);
+async function showtime() {
+  // if we're calibrating, turn that off
+  console.log(pMapper);
+  if (pMapper.calibrate) {
+    pMapper.toggleCalibration();
   }
+  if (!cameraActive) await initPoseSystem();
+  if (previewMode) previewMode = false;
+  if (mouseMode) mouseMode = false;
+  if (debugMode) {
+    debugMode = false;
+    if (statusEl) statusEl.style.display = "none";
+  }
+  shouldInvert = true;
+  if (!fullscreen()) fullscreen(true);
 }
 
 function scaleLandmark(kp) {
@@ -589,7 +648,11 @@ function dist2D(a, b) {
 const POSE_SMOOTH = 0.25; // 0 = frozen, 1 = no smoothing
 const POSE_HOLD_MS = 1000; // keep last position this long after detection drops
 const POSE_MIN_VISIBILITY = 0.5; // landmarks below this are treated as absent
+const PRIMARY_SWITCH_TIMEOUT = 3000; // ms absent before switching to a new primary person
+const PRIMARY_MATCH_RADIUS = 0.4; // fraction of canvas width to consider "same person"
 let lastPoseDetectedTime = 0;
+let primaryBodyCenter = null; // last known position of the tracked person
+let primaryLostTime = 0; // when primary person was last missing
 
 function smoothLandmark(current, next) {
   if (!current) return next;
@@ -599,6 +662,90 @@ function smoothLandmark(current, next) {
     z: lerp(current.z, next.z, POSE_SMOOTH),
     visibility: next.visibility,
   };
+}
+
+function buildBody(pose, prev) {
+  try {
+    const kp = {};
+    for (const k of pose.keypoints) kp[k.name] = k;
+
+    const leftShoulder = kp["left_shoulder"];
+    const rightShoulder = kp["right_shoulder"];
+    if (
+      !leftShoulder ||
+      !rightShoulder ||
+      leftShoulder.score < POSE_MIN_VISIBILITY ||
+      rightShoulder.score < POSE_MIN_VISIBILITY
+    )
+      return null;
+
+    const sLS = smoothLandmark(prev?.leftShoulder, scaleLandmark(leftShoulder));
+    const sRS = smoothLandmark(
+      prev?.rightShoulder,
+      scaleLandmark(rightShoulder),
+    );
+    if (!sLS || !sRS) return null;
+
+    const nose = kp["nose"];
+    const leftWrist = kp["left_wrist"];
+    const rightWrist = kp["right_wrist"];
+
+    const body = {
+      nose: nose ? smoothLandmark(prev?.nose, scaleLandmark(nose)) : null,
+      leftShoulder: sLS,
+      rightShoulder: sRS,
+      leftWrist: leftWrist
+        ? smoothLandmark(prev?.leftWrist, scaleLandmark(leftWrist))
+        : null,
+      rightWrist: rightWrist
+        ? smoothLandmark(prev?.rightWrist, scaleLandmark(rightWrist))
+        : null,
+      bodyCenter: midpoint(sLS, sRS),
+      handSpan: 0,
+    };
+    if (body.leftWrist && body.rightWrist) {
+      body.handSpan = dist2D(body.leftWrist, body.rightWrist);
+    }
+    return body;
+  } catch (e) {
+    return null;
+  }
+}
+
+function selectPrimaryBody(newBodies, now) {
+  if (!newBodies.length) return null;
+
+  // No primary established yet — pick first
+  if (!primaryBodyCenter) return 0;
+
+  const threshold = width * PRIMARY_MATCH_RADIUS;
+  let bestIdx = -1;
+  let bestDist = Infinity;
+  for (let i = 0; i < newBodies.length; i++) {
+    const d = dist2D(newBodies[i].bodyCenter, primaryBodyCenter);
+    if (d < bestDist) {
+      bestDist = d;
+      bestIdx = i;
+    }
+  }
+
+  if (bestDist < threshold) {
+    // Found — reset lost timer
+    primaryLostTime = 0;
+    return bestIdx;
+  }
+
+  // Primary not found this frame
+  if (!primaryLostTime) primaryLostTime = now;
+  if (now - primaryLostTime > PRIMARY_SWITCH_TIMEOUT) {
+    // Gone long enough — accept new person
+    primaryLostTime = 0;
+    primaryBodyCenter = null;
+    return 0;
+  }
+
+  // Within debounce — hold last position
+  return null;
 }
 
 function updatePoseState() {
@@ -612,51 +759,11 @@ function updatePoseState() {
     return;
   }
 
+  // Build valid bodies from all detected poses
   const newBodies = [];
-  for (let i = 0; i < mlPoses.length; i++) {
-    const pose = mlPoses[i];
-    const kp = {};
-    for (const k of pose.keypoints) kp[k.name] = k;
-
-    const leftShoulder = kp["left_shoulder"];
-    const rightShoulder = kp["right_shoulder"];
-    if (
-      !leftShoulder ||
-      !rightShoulder ||
-      leftShoulder.score < POSE_MIN_VISIBILITY ||
-      rightShoulder.score < POSE_MIN_VISIBILITY
-    )
-      continue;
-
-    const prev = poseState.bodies[i] ?? {};
-    const nose = kp["nose"];
-    const leftWrist = kp["left_wrist"];
-    const rightWrist = kp["right_wrist"];
-
-    const sLS = smoothLandmark(prev.leftShoulder, scaleLandmark(leftShoulder));
-    const sRS = smoothLandmark(
-      prev.rightShoulder,
-      scaleLandmark(rightShoulder),
-    );
-    if (!sLS || !sRS) continue; // mlVideo was nulled out mid-callback
-
-    const body = {
-      nose: nose ? smoothLandmark(prev.nose, scaleLandmark(nose)) : null,
-      leftShoulder: sLS,
-      rightShoulder: sRS,
-      leftWrist: leftWrist
-        ? smoothLandmark(prev.leftWrist, scaleLandmark(leftWrist))
-        : null,
-      rightWrist: rightWrist
-        ? smoothLandmark(prev.rightWrist, scaleLandmark(rightWrist))
-        : null,
-      bodyCenter: midpoint(sLS, sRS),
-      handSpan: 0,
-    };
-    if (body.leftWrist && body.rightWrist) {
-      body.handSpan = dist2D(body.leftWrist, body.rightWrist);
-    }
-    newBodies.push(body);
+  for (const pose of mlPoses) {
+    const body = buildBody(pose, null);
+    if (body) newBodies.push(body);
   }
 
   if (!newBodies.length) {
@@ -667,19 +774,29 @@ function updatePoseState() {
     return;
   }
 
-  lastPoseDetectedTime = now;
-  poseState.bodies = newBodies;
-  poseState.active = true;
+  // Lock onto primary person
+  const primaryIdx = selectPrimaryBody(newBodies, now);
+  if (primaryIdx === null) return; // within debounce — hold current state
 
-  // mirror first body onto top-level fields for backwards compat
-  const first = newBodies[0];
-  poseState.nose = first.nose;
-  poseState.leftShoulder = first.leftShoulder;
-  poseState.rightShoulder = first.rightShoulder;
-  poseState.leftWrist = first.leftWrist;
-  poseState.rightWrist = first.rightWrist;
-  poseState.bodyCenter = first.bodyCenter;
-  poseState.handSpan = first.handSpan;
+  // Smooth primary body against its previous state
+  const prevPrimary = poseState.bodies[0] ?? {};
+  const primary =
+    buildBody(mlPoses[primaryIdx], prevPrimary) ?? newBodies[primaryIdx];
+
+  primaryBodyCenter = primary.bodyCenter;
+  lastPoseDetectedTime = now;
+
+  poseState.active = true;
+  poseState.bodies = [primary];
+
+  // top-level fields for backwards compat
+  poseState.nose = primary.nose;
+  poseState.leftShoulder = primary.leftShoulder;
+  poseState.rightShoulder = primary.rightShoulder;
+  poseState.leftWrist = primary.leftWrist;
+  poseState.rightWrist = primary.rightWrist;
+  poseState.bodyCenter = primary.bodyCenter;
+  poseState.handSpan = primary.handSpan;
 }
 
 function windowResized() {
@@ -700,7 +817,12 @@ function initSync() {
   function connect() {
     syncSocket = new WebSocket(SYNC_SERVER_URL);
 
-    syncSocket.onopen = () => console.log(`sync connected as ${syncRole}`);
+    syncSocket.onopen = () => {
+      console.log(`sync connected as ${syncRole}`);
+      if (syncRole === "follower") {
+        syncSocket.send(JSON.stringify({ type: "hello" }));
+      }
+    };
     syncSocket.onerror = (e) => console.warn("sync error", e);
     syncSocket.onclose = () => {
       console.log("sync lost — retrying in 2s");
@@ -708,43 +830,49 @@ function initSync() {
     };
 
     syncSocket.onmessage = ({ data }) => {
-    const msg = JSON.parse(data);
+      const msg = JSON.parse(data);
 
-    // Scene changes: followers only
-    if (msg.type === "scene" && syncRole === "follower") {
-      director.goToScene(msg.sceneId, { localSeconds: msg.localMs / 1000 });
-      lastSyncedSceneIndex = director.activeIndex;
-    }
-
-    // Pose: apply on both leader and follower (leader gets pose from /pose computer)
-    if (msg.type === "pose" && !mouseMode) {
-      const sx = msg.senderWidth ? width / msg.senderWidth : 1;
-      const sy = msg.senderHeight ? height / msg.senderHeight : 1;
-      const scalePoint = (pt) =>
-        pt ? { ...pt, x: pt.x * sx, y: pt.y * sy } : null;
-      poseState.active = msg.active;
-      poseState.bodies = msg.bodies.map((b) => ({
-        ...b,
-        bodyCenter: scalePoint(b.bodyCenter),
-        nose: scalePoint(b.nose),
-        leftShoulder: scalePoint(b.leftShoulder),
-        rightShoulder: scalePoint(b.rightShoulder),
-        leftWrist: scalePoint(b.leftWrist),
-        rightWrist: scalePoint(b.rightWrist),
-        handSpan: b.handSpan * sx,
-      }));
-      const first = poseState.bodies[0];
-      if (first) {
-        poseState.nose = first.nose;
-        poseState.leftShoulder = first.leftShoulder;
-        poseState.rightShoulder = first.rightShoulder;
-        poseState.leftWrist = first.leftWrist;
-        poseState.rightWrist = first.rightWrist;
-        poseState.bodyCenter = first.bodyCenter;
-        poseState.handSpan = first.handSpan;
+      // New follower joined — leader re-sends current scene so they sync immediately
+      if (msg.type === "hello" && syncRole === "leader") {
+        sendSceneSync();
       }
-    }
-  };
+
+      // Scene changes: followers only
+      if (msg.type === "scene" && syncRole === "follower") {
+        director.goToScene(msg.sceneId, { localSeconds: msg.localMs / 1000 });
+        lastSyncedSceneIndex = director.activeIndex;
+      }
+
+      // Pose: apply on both leader and follower (leader gets pose from /pose computer)
+      // Followers always accept synced pose regardless of local mouseMode
+      if (msg.type === "pose" && (!mouseMode || syncRole === "follower")) {
+        const sx = msg.senderWidth ? width / msg.senderWidth : 1;
+        const sy = msg.senderHeight ? height / msg.senderHeight : 1;
+        const scalePoint = (pt) =>
+          pt ? { ...pt, x: pt.x * sx, y: pt.y * sy } : null;
+        poseState.active = msg.active;
+        poseState.bodies = msg.bodies.map((b) => ({
+          ...b,
+          bodyCenter: scalePoint(b.bodyCenter),
+          nose: scalePoint(b.nose),
+          leftShoulder: scalePoint(b.leftShoulder),
+          rightShoulder: scalePoint(b.rightShoulder),
+          leftWrist: scalePoint(b.leftWrist),
+          rightWrist: scalePoint(b.rightWrist),
+          handSpan: b.handSpan * sx,
+        }));
+        const first = poseState.bodies[0];
+        if (first) {
+          poseState.nose = first.nose;
+          poseState.leftShoulder = first.leftShoulder;
+          poseState.rightShoulder = first.rightShoulder;
+          poseState.leftWrist = first.leftWrist;
+          poseState.rightWrist = first.rightWrist;
+          poseState.bodyCenter = first.bodyCenter;
+          poseState.handSpan = first.handSpan;
+        }
+      }
+    };
   }
 
   connect();
@@ -803,4 +931,63 @@ function recreateProjectionSurface() {
   if (!mappedSurfaces.length) return;
   const sw = width / mappedSurfaces.length;
   for (const s of mappedSurfaces) s.setSize(sw, height);
+}
+
+function getIsAutoMove() {
+  const AUTO_TIMEOUT = 8000;
+  const hasPose = poseState.bodies.length > 0;
+  if (hasPose) lastPoseTime = millis();
+
+  const autoMode =
+    !mouseMode && (!cameraActive || millis() - lastPoseTime > AUTO_TIMEOUT);
+  return autoMode;
+}
+
+function getPoseX() {
+  // if it's mouse mode, use mouseX;
+  // otherwise, try to get pose X
+  // otherwise, return center
+  if (mouseMode) return mouseX;
+  const hasPose = poseState.bodies.length > 0;
+  return hasPose ? poseState.bodies[0].bodyCenter.x : width / 2;
+}
+
+function getPoseY() {
+  if (mouseMode) return mouseY;
+  const hasPose = poseState.bodies.length > 0;
+  return hasPose ? poseState.bodies[0].bodyCenter.y : height / 2;
+}
+
+function displaySplitOutline(pg) {
+  // 6" bar + 58" screen + 3" bar + 26" screen + 3" bar + 58" screen + 6" bar
+  // = 160"
+  const totalWidth = 160;
+  const scale = pg.width / totalWidth;
+  const bigBarWidth = 6 * scale;
+  const littleBarWidth = 3 * scale;
+  const screen1Width = 58 * scale;
+  const screen2Width = 26 * scale;
+
+  let x = 0;
+  pg.push();
+  pg.noStroke();
+  pg.fill(255, 100);
+  // Left bar
+  pg.rect(0, 0, bigBarWidth, pg.height);
+  x += bigBarWidth;
+  // screen 1
+  x += screen1Width;
+  // first little bar
+  pg.rect(x, 0, littleBarWidth, pg.height);
+  x += littleBarWidth;
+  // Screen 2
+  x += screen2Width;
+  // second little bar
+  pg.rect(x, 0, littleBarWidth, pg.height);
+  x += littleBarWidth;
+  // screen 3
+  x += screen1Width;
+  // right big bar
+  pg.rect(x, 0, bigBarWidth, pg.height);
+  pg.pop();
 }

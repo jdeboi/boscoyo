@@ -11,14 +11,19 @@ const pirogue = {
   lastFrameTime: 0, // ms
   x: startX,
   y: 0,
+  scale: 1,
 
   reset: function () {
     this.x = startX;
   },
   display: function (pg) {
+    pg.push();
+    pg.translate(this.x, this.y);
+    pg.scale(this.scale);
     if (this.imgs[this.imgIndex]) {
-      pg.image(this.imgs[this.imgIndex], this.x, this.y);
+      pg.image(this.imgs[this.imgIndex], 0, 0);
     }
+    pg.pop();
   },
 
   update: function () {
@@ -50,5 +55,19 @@ const pirogue = {
 
   move: function (dir) {
     this.x += dir;
+  },
+
+  getHeight: function (sc = 1) {
+    const img = this.imgs[0];
+    return img ? img.height * sc : 0;
+  },
+
+  getWidth: function (sc = 1) {
+    const img = this.imgs[0];
+    return img ? img.width * sc : 0;
+  },
+
+  setHeightFromBottom(disFromBottom, pg, sc = 1) {
+    this.y = (pg.height - disFromBottom - this.getHeight(sc)) / this.scale;
   },
 };
