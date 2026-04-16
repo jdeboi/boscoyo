@@ -372,7 +372,11 @@ function debugPose(pg = scene2D) {
   pg.textSize(20);
   pg.text(`poseReady: ${poseReady}`, 20, 90);
   pg.text(`pose active: ${poseState.active}`, 20, 120);
-  pg.text(`poses: ${mlPoses.length}`, 20, 150);
+  pg.text(`bodies: ${poseState.bodies.length}`, 20, 150);
+  pg.text(`mlPoses: ${mlPoses.length}`, 20, 180);
+  const bc = poseState.bodyCenter;
+  pg.text(`bodyCenter: ${bc ? `${bc.x.toFixed(0)}, ${bc.y.toFixed(0)}` : "null"}`, 20, 210);
+  pg.text(`mouseMode: ${mouseMode}`, 20, 240);
   if (!poseState.active) {
     pg.pop();
     return;
