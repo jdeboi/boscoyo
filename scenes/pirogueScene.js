@@ -1,4 +1,6 @@
 let pirogueFollowerX = 0;
+let sk1PirogueX = 0;
+let sk1FacingRight = true;
 let pirogueFollowerY = 0;
 let pirogueFollowerFacingRight = true;
 let pirogueWind = 0;
@@ -276,6 +278,33 @@ function displayPirogueBoat(pg) {
   pg.background(0);
   _updatePirogue(pg);
   _drawBoat(pg);
+}
+
+function displayPirogueBottom(pg) {
+  const bodyX = getPoseX();
+  const img = pirogue.imgs[pirogue.imgIndex];
+  const SC = 1;
+  const halfW = img ? (img.width * SC) / 2 : 0;
+
+  const prevX = sk1PirogueX;
+  sk1PirogueX = pg.constrain(
+    pg.lerp(sk1PirogueX, bodyX, 0.04),
+    halfW,
+    pg.width - halfW,
+  );
+  if (pg.abs(sk1PirogueX - prevX) > 0.1) {
+    sk1FacingRight = sk1PirogueX > prevX;
+  }
+
+  pirogue.update();
+
+  pg.push();
+  pg.imageMode(pg.CENTER);
+  pg.translate(sk1PirogueX, pg.height - pirogue.getHeight(SC) / 2 - 10);
+  if (!sk1FacingRight) pg.scale(-1, 1);
+  pg.scale(SC);
+  if (img) pg.image(img, 0, 0);
+  pg.pop();
 }
 
 function displayPirogueScene(pg) {
