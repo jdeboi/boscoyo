@@ -150,7 +150,7 @@ async function init() {
   connectSync();
 
   // Load bodyPose model
-  const bodyPose = ml5.bodyPose("MoveNet", {
+  const bodyPose = await ml5.bodyPose("MoveNet", {
     flipped: true,
     modelType: "MULTIPOSE_LIGHTNING",
   });
