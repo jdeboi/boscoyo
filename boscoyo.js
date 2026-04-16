@@ -570,6 +570,7 @@ function keyPressed() {
       break;
     case "c":
       pMapper.toggleCalibration();
+      if (pMapper.calibrate) cursor(); else noCursor();
       break;
     case "f":
       let fs = fullscreen();
