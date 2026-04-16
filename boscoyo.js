@@ -941,7 +941,7 @@ function getIsAutoMove() {
   if (hasPose) lastPoseTime = millis();
 
   const autoMode =
-    !mouseMode && (!cameraActive || millis() - lastPoseTime > AUTO_TIMEOUT);
+    !mouseMode && millis() - lastPoseTime > AUTO_TIMEOUT;
   return autoMode;
 }
 
