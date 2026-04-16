@@ -12,6 +12,7 @@ let lastFPSTime = 0;
 let lastRenderCount = 0;
 let lastPoseCount = 0;
 let lastPoseTime = 0;
+let lastPoseMsg = null; // raw last received pose message for debugging
 
 const mappedSurfaces = [];
 let scene2D;
@@ -377,6 +378,12 @@ function debugPose(pg = scene2D) {
   const bc = poseState.bodyCenter;
   pg.text(`bodyCenter: ${bc ? `${bc.x.toFixed(0)}, ${bc.y.toFixed(0)}` : "null"}`, 20, 210);
   pg.text(`mouseMode: ${mouseMode}`, 20, 240);
+  pg.text(`canvas: ${width} x ${height}`, 20, 270);
+  if (lastPoseMsg) {
+    const rawBc = lastPoseMsg.bodies?.[0]?.bodyCenter;
+    pg.text(`senderSize: ${lastPoseMsg.senderWidth} x ${lastPoseMsg.senderHeight}`, 20, 300);
+    pg.text(`raw bodyCenter: ${rawBc ? `${rawBc.x.toFixed(2)}, ${rawBc.y.toFixed(2)}` : "null"}`, 20, 330);
+  }
   if (!poseState.active) {
     pg.pop();
     return;
@@ -852,6 +859,7 @@ function initSync() {
       // Pose: apply on both leader and follower (leader gets pose from /pose computer)
       // Followers always accept synced pose regardless of local mouseMode
       if (msg.type === "pose" && (!mouseMode || syncRole === "follower")) {
+        lastPoseMsg = msg;
         const sx = msg.senderWidth ? width / msg.senderWidth : 1;
         const sy = msg.senderHeight ? height / msg.senderHeight : 1;
         const scalePoint = (pt) =>
