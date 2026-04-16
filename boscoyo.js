@@ -50,7 +50,6 @@ let moveForward = false;
 let shouldInvert = false;
 let debugMode = true;
 let previewMode = true;
-let mouseMode = true; // toggle with 'm'
 let invertPoseX = true; // mirror pose X coords; toggle with 'x'
 
 // --- sync ---
@@ -58,6 +57,7 @@ const _syncParams = new URLSearchParams(location.search);
 const syncRole = _syncParams.get("role"); // "leader" | "follower"
 const _syncHost = _syncParams.get("sync"); // optional leader IP for offline-local-server mode
 const cameraAllowed = _syncParams.get("camera") !== "0"; // set ?camera=0 to disable camera on this machine
+let mouseMode = cameraAllowed; // false when ?camera=0 (using dedicated pose computer); toggle with 'm'
 const SYNC_SERVER_URL = _syncHost
   ? `ws://${_syncHost}:8080`
   : `ws://${location.host}`;
