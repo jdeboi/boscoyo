@@ -74,7 +74,7 @@ const sceneCoordinator = [
     sketch1: { draw: (pg) => displayTreeBase(pg) },
     sketch2: { draw: (pg) => displayTreeBase(pg) },
     sketchOverlay: {
-      draw: (pg) => displayPirogueOverlay(pg),
+      draw: (pg) => displayPirogueBottom(pg),
       onEnter: (pg) => {
         pirogue.setHeightFromBottom(0, pg);
         pirogue.x = 0;
@@ -131,7 +131,7 @@ const sceneCoordinator = [
     sketch1: { draw: displayPirogueReeds },
     sketch2: null,
     sketchOverlay: {
-      draw: (pg) => displayPirogueOverlay(pg),
+      draw: (pg) => displayPirogueBottom(pg),
       onEnter: (pg) => {
         pirogue.setHeightFromBottom(0, pg);
         pirogue.x = 0;
