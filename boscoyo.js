@@ -943,16 +943,15 @@ function getIsAutoMove() {
 }
 
 function getPoseX() {
-  // if it's mouse mode, use mouseX;
-  // otherwise, try to get pose X
-  // otherwise, return center
-  if (mouseMode) return mouseX;
+  // leader in mouse mode: use local mouse (also broadcast as pose)
+  // follower: always use synced poseState (which may have come from leader's mouse)
+  if (mouseMode && syncRole !== "follower") return mouseX;
   const hasPose = poseState.bodies.length > 0;
   return hasPose ? poseState.bodies[0].bodyCenter.x : width / 2;
 }
 
 function getPoseY() {
-  if (mouseMode) return mouseY;
+  if (mouseMode && syncRole !== "follower") return mouseY;
   const hasPose = poseState.bodies.length > 0;
   return hasPose ? poseState.bodies[0].bodyCenter.y : height / 2;
 }
