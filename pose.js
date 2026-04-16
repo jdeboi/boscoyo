@@ -191,6 +191,8 @@ async function init() {
 
   const videoEl = document.getElementById("video");
   videoEl.srcObject = stream;
+  videoEl.width = 640;
+  videoEl.height = 480;
   await videoEl.play();
 
   bodyPose.detectStart(videoEl, (results) => {
