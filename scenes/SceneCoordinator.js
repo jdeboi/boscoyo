@@ -7,7 +7,7 @@
 // so the name is resolved lazily at call time, not at SceneCoordinator parse time.
 
 const START_SCENE_ID = "moss";
-const DURATION = 1000;
+const DURATION = 10;
 
 const sceneCoordinator = [
   {
