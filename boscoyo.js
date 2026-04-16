@@ -862,8 +862,11 @@ function initSync() {
         lastPoseMsg = msg;
         const sx = msg.senderWidth ? width / msg.senderWidth : 1;
         const sy = msg.senderHeight ? height / msg.senderHeight : 1;
-        const scalePoint = (pt) =>
-          pt ? { ...pt, x: pt.x * sx, y: pt.y * sy } : null;
+        const scalePoint = (pt) => {
+          if (!pt) return null;
+          const x = pt.x * sx;
+          return { ...pt, x: invertPoseX ? width - x : x, y: pt.y * sy };
+        };
         poseState.active = msg.active;
         poseState.bodies = msg.bodies.map((b) => ({
           ...b,
