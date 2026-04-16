@@ -14,7 +14,9 @@
         font-size: 14px;
       }
       #status { margin-bottom: 12px; color: #aaa; }
-      #fps { color: #4f4; margin-bottom: 12px; }
+      #fps { color: #4f4; margin-bottom: 4px; }
+      #coords { color: #8cf; font-size: 12px; margin-bottom: 12px; min-height: 1em; }
+      #sendflash { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #333; margin-right: 6px; vertical-align: middle; transition: background 0.1s; }
       video {
         width: 480px;
         height: 360px;
@@ -33,7 +35,8 @@
   </head>
   <body>
     <div id="status">Starting...</div>
-    <div id="fps"></div>
+    <div id="fps"><span id="sendflash"></span><span id="fpstext"></span></div>
+    <div id="coords"></div>
     <div style="position:relative; display:inline-block;">
       <video id="video" playsinline muted></video>
       <canvas id="overlay" width="480" height="360"></canvas>

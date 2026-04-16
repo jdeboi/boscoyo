@@ -90,11 +90,28 @@ function processPoses(results, videoEl) {
       senderHeight: videoEl.videoHeight,
     }));
     sendCount++;
+    const flash = document.getElementById("sendflash");
+    flash.style.background = "#4f4";
+    setTimeout(() => { flash.style.background = "#333"; }, 80);
+  }
+
+  // Update coords display every frame
+  const coordEl = document.getElementById("coords");
+  if (prevBodies.length > 0) {
+    coordEl.textContent = prevBodies.map((b, i) => {
+      const c = b.bodyCenter;
+      const lw = b.leftWrist, rw = b.rightWrist;
+      return `body${i}: center(${c.x.toFixed(0)}, ${c.y.toFixed(0)})` +
+        (lw ? `  lw(${lw.x.toFixed(0)}, ${lw.y.toFixed(0)})` : "") +
+        (rw ? `  rw(${rw.x.toFixed(0)}, ${rw.y.toFixed(0)})` : "");
+    }).join("  |  ");
+  } else {
+    coordEl.textContent = "no bodies";
   }
 
   // Update FPS display once per second
   if (now - lastFpsTime > 1000) {
-    document.getElementById("fps").textContent =
+    document.getElementById("fpstext").textContent =
       `sending ${sendCount}fps  |  ${newBodies.length} bod${newBodies.length === 1 ? "y" : "ies"} detected`;
     sendCount = 0;
     lastFpsTime = now;
