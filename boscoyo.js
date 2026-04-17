@@ -43,6 +43,7 @@ let leaningTreeImg;
 let fullBaldTreeImg;
 let gatorHeadImg;
 let gatorBackImg;
+let reedImgs = [];
 const gator = new Gator();
 
 let font;
@@ -99,6 +100,9 @@ function preload() {
   for (let i = 0; i < 6; i++) {
     pirogue.imgs[i] = loadImage("./assets/Pirogues/" + i + ".png");
   }
+  // for (let i = 0; i < 4; i++) {
+  //   reedImgs[i] = loadImage("./assets/reed/plume_" + i + ".png");
+  // }
 }
 
 function resizeImages() {
@@ -111,6 +115,9 @@ function resizeImages() {
   for (let i = 0; i < pirogue.imgs.length; i++) {
     pirogue.imgs[i].resize(0, 500);
   }
+  // for (let i = 0; i < reedImgs.length; i++) {
+  //   reedImgs[i].resize(0, 80);
+  // }
 }
 async function initPoseSystem() {
   if (cameraActive) return; // prevent double-start during async init

@@ -22,12 +22,14 @@ class Reed {
     const t = map(baseY, canvasH * 0.4, canvasH * 0.88, 0, 1, true);
     this.t = t;
     this.height = map(t, 0, 1, 60, 320);
-    this.stemW = map(t, 0, 1, 1, 5);
+    this.stemW = map(t, 0, 1, 2, 6);
     this.colorTOffset = random(-0.4, 0); // per-reed brightness variation to break up overlap
 
     this.hasCattail = random() > 0.35;
     this.cattailFrac = random(0.55, 0.72);
-    this.hasPlume = random() > 0.5; // feathery tops
+    this.hasPlume = random() > 0.3; // feathery tops
+    this.reedImgIndex = 0; // !this.hasPlume ? floor(random(reedImgs.length)) : -1;
+    this.reedImgScale = random(0.7, 1.4);
 
     // Wide arching leaf blades
     const nLeaves = floor(random(2, 7));
@@ -68,7 +70,7 @@ class Reed {
       -1,
       1,
     );
-    const windBend = pirogueWind * this.height * 0.35;
+    const windBend = pirogueWind * this.height * 0.7;
     const normDist = (this.x - boatX) / 280;
     const boatBend =
       abs(normDist) < 1 ? sin(normDist * PI) * this.height * 0.38 : 0;
@@ -83,13 +85,14 @@ class Reed {
     const c = pg.lerpColor(pg.color(90, 110, 90), pg.color(255), colorT);
 
     pg.push();
-    pg.translate(0, -200);
+    pg.translate(0, -130);
 
     // --- Leaf blades (behind stem) ---
-    pg.stroke(0, 50);
+    pg.strokeWeight(3);
+    pg.stroke(255, 150);
     pg.fill(c);
     for (const leaf of this.leaves) {
-      const oy = this.baseY - this.height * leaf.originFrac;
+      const oy = this.baseY - 20;
       const reach = leaf.archW * this.height * 0.6;
       const rise = leaf.archH * this.height;
       const ltx = this.x + leaf.side * reach + tilt * 0.55;
@@ -109,6 +112,7 @@ class Reed {
     // --- Main stem ---
     pg.stroke(c);
     pg.strokeWeight(this.stemW);
+    // pg.noStroke();
     pg.noFill();
     pg.beginShape();
     pg.vertex(this.x, this.baseY);
@@ -128,9 +132,9 @@ class Reed {
       const ty =
         this._qt(this.baseY, cpY, tipY, f2) -
         this._qt(this.baseY, cpY, tipY, f1);
-      pg.strokeWeight(1);
-      pg.stroke(0, 80);
-      pg.fill(c);
+      pg.strokeWeight(5);
+      pg.stroke(0);
+      pg.fill(red(c) - 40, green(c) - 40, blue(c) - 40);
       pg.push();
       pg.translate(hx, hy);
       pg.rotate(atan2(tx, -ty));
@@ -142,7 +146,7 @@ class Reed {
     if (this.hasPlume) {
       const stemTilt = atan2(tilt, this.height); // angle stem has rotated from vertical
       pg.stroke(c);
-      pg.strokeWeight(max(0.4, this.stemW * 0.3));
+      pg.strokeWeight(max(0.5, this.stemW * 0.3));
       pg.noFill();
       for (const frond of this.fronds) {
         const a = frond.angle + stemTilt;
@@ -159,6 +163,20 @@ class Reed {
         pg.endShape();
       }
     }
+
+    // --- Reed image at tip (for reeds without a drawn plume) ---
+    // if (this.reedImgIndex >= 0 && reedImgs[this.reedImgIndex]) {
+    //   const img = reedImgs[this.reedImgIndex];
+    //   const stemTilt = atan2(tilt, this.height);
+    //   pg.push();
+    //   pg.translate(tipX, tipY);
+    //   pg.rotate(stemTilt);
+    //   pg.scale(this.reedImgScale);
+    //   pg.imageMode(pg.CORNER);
+    //   pg.image(img, -img.width / 2, -img.height);
+    //   pg.pop();
+    // }
+
     this.displayWater(pg);
     pg.pop();
   }
@@ -190,9 +208,10 @@ function setupPirogueScene(pg) {
 
   randomSeed(7);
 
-  const NUM_ROWS = 3;
+  const NUM_ROWS = 1;
   for (let row = 0; row < NUM_ROWS; row++) {
-    const yFrac = map(row, 0, NUM_ROWS - 1, 0.6, 0.88);
+    // const yFrac = map(row, 0, NUM_ROWS - 1, 0.75, 0.9);
+    const yFrac = 0.9;
     const baseY = H * yFrac;
     // const count = floor(
     //   map(abs(row - (NUM_ROWS - 1) * 0.5), 0, (NUM_ROWS - 1) * 0.5, 10, 5),
@@ -254,8 +273,8 @@ function _updatePirogue(pg) {
     pirogueFollowerFacingRight = pirogueFollowerX > prevX;
   }
 
-  const windTarget = pg.map(pirogueFollowerX, 0, pg.width, -0.2, 0.2);
-  pirogueWind = pg.lerp(pirogueWind, windTarget, 0.04);
+  const windTarget = pg.map(pg.noise(frameCount * 0.002), 0, 1, -0.18, 0.18);
+  pirogueWind = pg.lerp(pirogueWind, windTarget, 0.02);
 
   pirogue.update();
 }
@@ -332,8 +351,8 @@ function displayPirogueBottom(pg) {
 function displayPirogueScene(pg) {
   // pg.background(0);
   _updatePirogue(pg);
-  drawWaterBand(200, 0, pg, {
-    amp: 18,
+  drawWaterBand(460, 0, pg, {
+    amp: 28,
     hasOutline: false,
     hasRipples: false,
   });
@@ -345,7 +364,8 @@ function displayPirogueScene(pg) {
   if (_pirogueLastTargetX === null) _pirogueLastTargetX = targetX;
   const dx = targetX - _pirogueLastTargetX;
   if (abs(dx) > 2) _pirogueDir = dx > 0 ? 1 : -1;
+  const speed = 2.5;
   _pirogueLastTargetX = targetX;
-  bird.display(pg, _pirogueDir);
-  bird.update(_pirogueDir);
+  bird.display(pg, _pirogueDir * speed);
+  bird.update(_pirogueDir * speed);
 }
