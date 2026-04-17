@@ -86,4 +86,4 @@ class Bird {
 
 // default singletons
 const bird = new Bird({ speed: 1.5, scale: 1, wrapBuffer: 80 });
-const flyBird = new Bird({ speed: 3, scale: 1, isFlying: true });
+const flyBird = new Bird({ speed: 6, scale: 1, isFlying: true });

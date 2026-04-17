@@ -976,7 +976,6 @@ function getIsAutoMove() {
   const AUTO_TIMEOUT = 8000;
   const hasPose = poseState.bodies.length > 0;
   if (hasPose) lastPoseTime = millis();
-
   const autoMode = !mouseMode && millis() - lastPoseTime > AUTO_TIMEOUT;
   return autoMode;
 }

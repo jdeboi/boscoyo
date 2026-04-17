@@ -31,7 +31,7 @@ function displayTreesSplit(pg) {
 
 function displayTreesMoving(pg) {
   if (getIsAutoMove()) {
-    xPosition += 0.5; // slow auto-scroll right
+    xPosition += 1.5; // slow auto-scroll right
   } else {
     const bodyX = getPoseX();
     const normalized = (bodyX / pg.width) * 2 - 1; // -1 (left) to +1 (right)

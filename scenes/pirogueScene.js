@@ -322,7 +322,9 @@ function displayPirogueBoat(pg) {
 }
 
 function displayPirogueBottom(pg) {
-  const bodyX = getPoseX();
+  const bodyX = getIsAutoMove()
+    ? pg.map(sin(frameCount * 0.012), -1, 1, pg.width * 0.15, pg.width * 0.85)
+    : getPoseX();
   const img = pirogue.imgs[pirogue.imgIndex];
   const SC = 1;
   const halfW = img ? (img.width * SC) / 2 : 0;
