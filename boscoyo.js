@@ -52,6 +52,7 @@ let pMapper;
 let moveForward = false;
 let shouldInvert = false;
 let debugMode = true;
+let showFPS = false;
 let previewMode = true;
 let invertPoseX = true; // mirror pose X coords; toggle with 'x'
 
@@ -355,17 +356,22 @@ function updateFPS() {
   }
 }
 function displayFrameRate() {
-  if (!debugMode) return;
   updateFPS();
+  if (showFPS) {
+    fill("red");
+    noStroke();
+    push();
+    translate(-width / 2, -height / 2);
+    textSize(200);
+    text(`${renderFPS}`, 200, 150);
+    text(`${poseFPS}`, 200, 380);
+    pop();
+  }
+  if (!debugMode) return;
   fill("red");
   noStroke();
-  textSize(200);
-
   push();
   translate(-width / 2, -height / 2);
-  text(`${renderFPS}`, 200, 150);
-  text(`${poseFPS}`, 200, 380);
-
   const sceneId = director?.scenes[director.activeIndex]?.id ?? "";
   textSize(60);
   text(sceneId, 20, height - 30);
@@ -588,6 +594,9 @@ function keyPressed() {
       break;
     case "i":
       shouldInvert = !shouldInvert;
+      break;
+    case "r":
+      showFPS = !showFPS;
       break;
     case "d":
       debugMode = !debugMode;

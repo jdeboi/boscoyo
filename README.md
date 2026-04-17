@@ -25,6 +25,23 @@ ipconfig getifaddr en0
 | Computer 3 | `http://localhost:8080/sketchOverlay?role=follower&sync=<leader-ip>` | Follower |
 | Computer 4 | `http://localhost:8080/sketchSplit?role=follower&sync=<leader-ip>` | Follower |
 
+### URL Parameters
+
+| Param | Values | Description |
+|-------|--------|-------------|
+| `role` | `leader` / `follower` | Network role — leader drives scenes, followers sync |
+| `sync` | `<ip>` | *(optional)* Leader IP for WebSocket when running a local server on each machine |
+| `camera` | `0` | *(optional)* Disable camera on this machine — only needed when a dedicated `/pose` computer is handling detection |
+| `localpose` | `1` | *(optional, followers only)* Use this machine's own camera for pose instead of the synced pose from the network; toggle at runtime with `o` |
+
+### Dedicated pose computer (3-machine example)
+
+| Machine | URL |
+|---------|-----|
+| Pose computer | `http://<leader-ip>:8080/pose` |
+| Leader (no camera) | `http://localhost:8080/?role=leader&camera=0` |
+| Follower (own camera) | `http://localhost:8080/?role=follower&sync=<leader-ip>&localpose=1` |
+
 ### 4. On the leader
 - Press `t` for **showtime mode** — starts camera, exits preview, switches to pose mode, flips canvas, hides debug, and enters fullscreen in one keystroke
 - Press `c` to enter projection calibration, drag corners, then `s` to save
@@ -41,9 +58,12 @@ ipconfig getifaddr en0
 | `s` | Save projection map |
 | `l` | Reload projection map from file |
 | `f` | Toggle fullscreen |
-| `d` | Toggle debug overlay (FPS, scene name, pose landmarks) |
+| `d` | Toggle debug overlay (scene name, pose landmarks, status) |
+| `r` | Toggle FPS display (independent of full debug overlay) |
 | `m` | Toggle mouse mode (use mouse instead of pose) |
+| `o` | Toggle local pose mode — use this machine's own camera instead of synced pose (followers only) |
 | `i` | Flip canvas horizontally |
+| `x` | Flip pose X coordinates |
 
 ## Fallback / Resilience
 
