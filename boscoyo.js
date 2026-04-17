@@ -60,9 +60,14 @@ let invertPoseX = true; // mirror pose X coords; toggle with 'x'
 const _syncParams = new URLSearchParams(location.search);
 const syncRole = _syncParams.get("role"); // "leader" | "follower"
 const _syncHost = _syncParams.get("sync"); // optional leader IP for offline-local-server mode
-const cameraAllowed = _syncParams.get("camera") !== "0"; // set ?camera=0 to disable camera on this machine
-let localPoseEnabled = _syncParams.get("localpose") === "1"; // sync scene changes but use own camera for pose
-let mouseMode = cameraAllowed; // false when ?camera=0 (using dedicated pose computer); toggle with 'm'
+// pose=local  → use own camera, ignore network pose
+// pose=network → no local camera, accept pose from /pose computer or leader
+// (no param)   → default: mouse mode until camera started manually
+const _poseParam = _syncParams.get("pose"); // "local" | "network"
+const cameraAllowed = _poseParam !== "network"; // false when pose=network
+let localPoseEnabled = _poseParam === "local"; // true when pose=local: block incoming pose
+const alwaysAuto = _syncParams.get("alwaysAuto") === "1"; // force auto mode permanently (no pose needed)
+let mouseMode = cameraAllowed; // false when pose=network; toggle with 'm'
 const SYNC_SERVER_URL = _syncHost
   ? `ws://${_syncHost}:8080`
   : `ws://${location.host}`;
@@ -987,6 +992,7 @@ function recreateProjectionSurface() {
 }
 
 function getIsAutoMove() {
+  if (alwaysAuto) return true;
   const AUTO_TIMEOUT = 8000;
   const hasPose = poseState.bodies.length > 0;
   if (hasPose) lastPoseTime = millis();

@@ -31,16 +31,16 @@ ipconfig getifaddr en0
 |-------|--------|-------------|
 | `role` | `leader` / `follower` | Network role — leader drives scenes, followers sync |
 | `sync` | `<ip>` | *(optional)* Leader IP for WebSocket when running a local server on each machine |
-| `camera` | `0` | *(optional)* Disable camera on this machine — only needed when a dedicated `/pose` computer is handling detection |
-| `localpose` | `1` | *(optional, followers only)* Use this machine's own camera for pose instead of the synced pose from the network; toggle at runtime with `o` |
+| `pose` | `local` / `network` | *(optional)* `local` — use this machine's own camera and ignore network pose. `network` — no local camera, accept pose from a `/pose` computer or the leader. Omit for default (mouse until camera started manually) |
+| `alwaysAuto` | `1` | *(optional)* Permanently force auto mode — scenes animate as if no pose is present, regardless of camera or pose input |
 
 ### Dedicated pose computer (3-machine example)
 
 | Machine | URL |
 |---------|-----|
 | Pose computer | `http://<leader-ip>:8080/pose` |
-| Leader (no camera) | `http://localhost:8080/?role=leader&camera=0` |
-| Follower (own camera) | `http://localhost:8080/?role=follower&sync=<leader-ip>&localpose=1` |
+| Leader (no camera) | `http://localhost:8080/?role=leader&pose=network` |
+| Follower (own camera) | `http://localhost:8080/?role=follower&sync=<leader-ip>&pose=local` |
 
 ### 4. On the leader
 - Press `t` for **showtime mode** — starts camera, exits preview, switches to pose mode, flips canvas, hides debug, and enters fullscreen in one keystroke
