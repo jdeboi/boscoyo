@@ -23,6 +23,7 @@ class Bird {
     this.wrapBuffer = wrapBuffer;
     this._followDir = 1;
     this._followLastTargetX = null;
+    this._followAccum = 0; // accumulated movement toward a direction change
   }
 
   display(pg, dir = 1, sc = 1) {
@@ -51,11 +52,24 @@ class Bird {
   }
 
   // Move in the same direction as targetX is moving. Call instead of update().
-  updateFollowing(targetX) {
+  // Only changes direction after accumulating DIRECTION_THRESHOLD px of movement
+  // in the new direction, preventing jitter from causing false direction flips.
+  updateFollowing(targetX, threshold = 15) {
     if (this._followLastTargetX === null) this._followLastTargetX = targetX;
     const dx = targetX - this._followLastTargetX;
-    if (abs(dx) > 2) this._followDir = dx > 0 ? 1 : -1;
     this._followLastTargetX = targetX;
+
+    const movingDir = dx > 0 ? 1 : dx < 0 ? -1 : 0;
+    if (movingDir !== 0 && movingDir !== this._followDir) {
+      this._followAccum += abs(dx);
+      if (this._followAccum >= threshold) {
+        this._followDir = movingDir;
+        this._followAccum = 0;
+      }
+    } else {
+      this._followAccum = 0;
+    }
+
     this.update(this._followDir);
     return this._followDir;
   }

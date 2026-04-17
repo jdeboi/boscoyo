@@ -5,7 +5,6 @@ let pirogueFollowerY = 0;
 let pirogueFollowerFacingRight = true;
 let pirogueWind = 0;
 let _pirogueDir = 1;
-let _pirogueLastTargetX = null;
 
 const pirogueReedsBack = []; // drawn before pirogue
 const pirogueReedsFront = []; // drawn after pirogue
@@ -360,11 +359,6 @@ function displayPirogueScene(pg) {
   });
   _drawReeds(pg);
 
-  const targetX = getPoseX();
-  if (_pirogueLastTargetX === null) _pirogueLastTargetX = targetX;
-  const dx = targetX - _pirogueLastTargetX;
-  if (abs(dx) > 2) _pirogueDir = dx > 0 ? 1 : -1;
-  _pirogueLastTargetX = targetX;
-  bird.display(pg, _pirogueDir);
-  bird.update(_pirogueDir);
+  const dir = bird.updateFollowing(getPoseX());
+  bird.display(pg, dir);
 }
