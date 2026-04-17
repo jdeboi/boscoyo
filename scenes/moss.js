@@ -24,14 +24,10 @@ function setupMossScene(pg) {
 function displayMossScene(pg = scene2D) {
   pg.background(0);
 
+  const repelX = getPoseX();
+  const repelY = pg.height * 0.3;
   for (const chain of mossSceneChains) {
-    if (poseState.bodies.length > 0) {
-      for (const body of poseState.bodies) {
-        chain.applyRepulsion(body.bodyCenter.x, body.bodyCenter.y, 200, 0.8);
-      }
-    } else {
-      chain.applyRepulsion(pg.mouseX, pg.mouseY, 200, 0.8);
-    }
+    chain.applyRepulsion(repelX, repelY, 200, 0.8);
     chain.update([]);
     chain.grow(0.5);
     chain.display(pg);

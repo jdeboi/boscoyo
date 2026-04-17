@@ -218,7 +218,7 @@ const lotusSplitFlowers = [];
 function displayLotusSplit(pg = scene2D) {
   const ix = getPoseX();
 
-  const windTarget = pg.map(ix, 0, pg.width, -0.2, 0.2);
+  const windTarget = pg.map(ix, 0, pg.width, -0.4, 0.4);
   lotusWind = pg.lerp(lotusWind, windTarget, 0.05);
 
   pg.background(0);
@@ -236,7 +236,7 @@ function displayLotusSplit(pg = scene2D) {
 
 function displayLotusOverlay(pg = scene2D) {
   const ix = getPoseX();
-  const windTarget = pg.map(ix, 0, pg.width, -0.2, 0.2);
+  const windTarget = pg.map(ix, 0, pg.width, -0.4, 0.4);
   lotusWind = pg.lerp(lotusWind, windTarget, 0.05);
 
   pg.background(0);
@@ -263,7 +263,7 @@ function displayLotus(pg = scene2D) {
 
 function displayLotusNoFront(pg = scene2D) {
   const ix = getPoseX();
-  const windTarget = pg.map(ix, 0, pg.width, -0.2, 0.2);
+  const windTarget = pg.map(ix, 0, pg.width, -0.4, 0.4);
   lotusWind = pg.lerp(lotusWind, windTarget, 0.05);
 
   // pg.push();
