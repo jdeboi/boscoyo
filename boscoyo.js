@@ -60,6 +60,7 @@ const _syncParams = new URLSearchParams(location.search);
 const syncRole = _syncParams.get("role"); // "leader" | "follower"
 const _syncHost = _syncParams.get("sync"); // optional leader IP for offline-local-server mode
 const cameraAllowed = _syncParams.get("camera") !== "0"; // set ?camera=0 to disable camera on this machine
+let localPoseEnabled = _syncParams.get("localpose") === "1"; // sync scene changes but use own camera for pose
 let mouseMode = cameraAllowed; // false when ?camera=0 (using dedicated pose computer); toggle with 'm'
 const SYNC_SERVER_URL = _syncHost
   ? `ws://${_syncHost}:8080`
@@ -369,6 +370,7 @@ function displayFrameRate() {
   textSize(60);
   text(sceneId, 20, height - 30);
   if (getIsAutoMove()) text("AUTO", 20, height - 100);
+  if (localPoseEnabled) text("LOCAL POSE", 20, height - 170);
   pop();
 }
 
@@ -596,6 +598,9 @@ function keyPressed() {
       break;
     case "x":
       invertPoseX = !invertPoseX;
+      break;
+    case "o":
+      localPoseEnabled = !localPoseEnabled;
       break;
     case "p":
       previewMode = !previewMode;
@@ -880,7 +885,7 @@ function initSync() {
 
       // Pose: apply on both leader and follower (leader gets pose from /pose computer)
       // Followers always accept synced pose regardless of local mouseMode
-      if (msg.type === "pose" && (!mouseMode || syncRole === "follower")) {
+      if (msg.type === "pose" && !localPoseEnabled && (!mouseMode || syncRole === "follower")) {
         lastPoseMsg = msg;
         const sx = msg.senderWidth ? width / msg.senderWidth : 1;
         const sy = msg.senderHeight ? height / msg.senderHeight : 1;

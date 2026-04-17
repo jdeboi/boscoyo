@@ -360,14 +360,11 @@ function displayPirogueScene(pg) {
   });
   _drawReeds(pg);
 
-  const hasPose = poseState.bodies.length > 0;
-  const targetX =
-    mouseMode || !hasPose ? mouseX : poseState.bodies[0].bodyCenter.x;
+  const targetX = getPoseX();
   if (_pirogueLastTargetX === null) _pirogueLastTargetX = targetX;
   const dx = targetX - _pirogueLastTargetX;
   if (abs(dx) > 2) _pirogueDir = dx > 0 ? 1 : -1;
-  const speed = 2.5;
   _pirogueLastTargetX = targetX;
-  bird.display(pg, _pirogueDir * speed);
-  bird.update(_pirogueDir * speed);
+  bird.display(pg, _pirogueDir);
+  bird.update(_pirogueDir);
 }

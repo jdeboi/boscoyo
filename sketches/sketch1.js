@@ -115,10 +115,7 @@ function displayBirdSplit(pg) {
 }
 
 function displayFlyingSplit(pg) {
-  const hasPose = poseState.bodies.length > 0;
-  const targetX =
-    mouseMode || !hasPose ? mouseX : poseState.bodies[0].bodyCenter.x;
-  const dir = flyBird.updateFollowing(targetX);
+  const dir = flyBird.updateFollowing(getPoseX());
   flyBird.display(pg, dir);
 }
 
@@ -134,9 +131,6 @@ function displayTreeTop(pg) {
 
 function displayTreeTopFlying(pg) {
   displayTreeTop(pg);
-  const hasPose = poseState.bodies.length > 0;
-  const targetX =
-    mouseMode || !hasPose ? mouseX : poseState.bodies[0].bodyCenter.x;
-  const dir = flyBird.updateFollowing(targetX);
+  const dir = flyBird.updateFollowing(getPoseX());
   flyBird.display(pg, dir);
 }
