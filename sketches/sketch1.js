@@ -35,13 +35,17 @@ function displayTreesMoving(pg) {
   } else {
     const bodyX = getPoseX();
     const normalized = (bodyX / pg.width) * 2 - 1; // -1 (left) to +1 (right)
-    const deadzone = 0.1;
-    const maxSpeed = 1.5;
+    const deadzone = 0.05;
+    const maxSpeed = 5;
     if (abs(normalized) > deadzone) {
       xPosition -= normalized * maxSpeed;
     }
   }
-
+  // drawWaterBand(pg.height * 0.8, 0, pg, {
+  //   amp: 18,
+  //   hasOutline: false,
+  //   hasRipples: false,
+  // });
   const totalW = trees.reduce((sum, t) => sum + t.getWidth() + TREE_GAP, 0);
   for (const tree of trees) {
     const treeW = tree.getWidth();
@@ -65,10 +69,14 @@ function displayPirogue(pg) {
 }
 
 function displayTreeBasePirogue(pg) {
+  drawWaterBand(200, 0, pg, {
+    amp: 18,
+    hasOutline: false,
+    hasRipples: false,
+  });
   displayTreeBase(pg);
   displayPirogueBottom(pg);
 }
-
 
 function displayTreeBase() {
   fullTree.display(100, -1000, 2);
@@ -107,8 +115,11 @@ function displayBirdSplit(pg) {
 }
 
 function displayFlyingSplit(pg) {
-  flyBird.display(pg, 1);
-  flyBird.update(1);
+  const hasPose = poseState.bodies.length > 0;
+  const targetX =
+    mouseMode || !hasPose ? mouseX : poseState.bodies[0].bodyCenter.x;
+  const dir = flyBird.updateFollowing(targetX);
+  flyBird.display(pg, dir);
 }
 
 function displayTreeTop(pg) {
@@ -123,6 +134,9 @@ function displayTreeTop(pg) {
 
 function displayTreeTopFlying(pg) {
   displayTreeTop(pg);
-  flyBird.display(pg, 1);
-  flyBird.update(1);
+  const hasPose = poseState.bodies.length > 0;
+  const targetX =
+    mouseMode || !hasPose ? mouseX : poseState.bodies[0].bodyCenter.x;
+  const dir = flyBird.updateFollowing(targetX);
+  flyBird.display(pg, dir);
 }

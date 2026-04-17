@@ -21,14 +21,8 @@ class Bird {
     this.speed = speed;
     this.scale = scale;
     this.wrapBuffer = wrapBuffer;
-
-    // Suspicious behavior state
-    this._suspState = "walking"; // 'walking' | 'paused'
-    this._suspDir = 1;
-    this._afterPauseDir = 1;
-    this._pauseUntil = 0;
-    this._lastTargetX = null;
-    this._targetLastMoved = 0;
+    this._followDir = 1;
+    this._followLastTargetX = null;
   }
 
   display(pg, dir = 1, sc = 1) {
@@ -56,64 +50,14 @@ class Bird {
     return img ? img.height * this.scale * sc : 0;
   }
 
-  // Returns the direction (1 or -1) to pass to display().
-  updateSuspicious(targetX) {
-    const MOVE_THRESHOLD = 10; // px movement to count as "target moved"
-    const STILL_TIMEOUT = 400; // ms — target counts as "moving" within this window
-    const PAUSE_DURATION = 1000; // ms bird freezes when disturbed
-    const PAUSE_RADIUS = 200; // px — only pause if bird is this close to target
-    const now = millis();
-
-    // Seed on first call: start walking toward target
-    if (this._lastTargetX === null) {
-      this._lastTargetX = targetX;
-      this._suspDir = this.x < targetX ? 1 : -1;
-    }
-
-    // Detect target motion
-    if (abs(targetX - this._lastTargetX) > MOVE_THRESHOLD) {
-      this._targetLastMoved = now;
-    }
-    this._lastTargetX = targetX;
-    const targetMoving = now - this._targetLastMoved < STILL_TIMEOUT;
-
-    // Trigger pause when target moves while walking and bird is close enough
-    if (
-      this._suspState === "walking" &&
-      targetMoving &&
-      abs(this.x - targetX) < PAUSE_RADIUS
-    ) {
-      const headingToward =
-        (this._suspDir > 0 && this.x < targetX) ||
-        (this._suspDir < 0 && this.x > targetX);
-      // If heading toward → reverse after pause. If heading away → keep going.
-      this._afterPauseDir = headingToward ? -this._suspDir : this._suspDir;
-      this._suspState = "paused";
-      this._pauseUntil = now + PAUSE_DURATION;
-    }
-
-    // End pause
-    if (this._suspState === "paused" && now >= this._pauseUntil) {
-      this._suspDir = this._afterPauseDir;
-      this._suspState = "walking";
-    }
-
-    if (this._suspState === "walking") {
-      this.x += this._suspDir * this.speed;
-
-      // Wrapping
-      const buf = this.wrapBuffer;
-      if (this.x > width + buf) this.x = -buf;
-      else if (this.x < -buf) this.x = width + buf;
-
-      // Advance animation frame
-      if (now - this.lastFrameTime > BIRD_FRAME_MS) {
-        this.imgIndex = (this.imgIndex + 1) % this.imgs.length;
-        this.lastFrameTime = now;
-      }
-    }
-
-    return this._suspDir;
+  // Move in the same direction as targetX is moving. Call instead of update().
+  updateFollowing(targetX) {
+    if (this._followLastTargetX === null) this._followLastTargetX = targetX;
+    const dx = targetX - this._followLastTargetX;
+    if (abs(dx) > 2) this._followDir = dx > 0 ? 1 : -1;
+    this._followLastTargetX = targetX;
+    this.update(this._followDir);
+    return this._followDir;
   }
 
   update(dir = 1) {

@@ -4,6 +4,8 @@ let sk1FacingRight = true;
 let pirogueFollowerY = 0;
 let pirogueFollowerFacingRight = true;
 let pirogueWind = 0;
+let _pirogueDir = 1;
+let _pirogueLastTargetX = null;
 
 const pirogueReedsBack = []; // drawn before pirogue
 const pirogueReedsFront = []; // drawn after pirogue
@@ -84,7 +86,7 @@ class Reed {
     pg.translate(0, -200);
 
     // --- Leaf blades (behind stem) ---
-    pg.noStroke();
+    pg.stroke(0, 50);
     pg.fill(c);
     for (const leaf of this.leaves) {
       const oy = this.baseY - this.height * leaf.originFrac;
@@ -126,8 +128,8 @@ class Reed {
       const ty =
         this._qt(this.baseY, cpY, tipY, f2) -
         this._qt(this.baseY, cpY, tipY, f1);
-
-      pg.noStroke();
+      pg.strokeWeight(1);
+      pg.stroke(0, 80);
       pg.fill(c);
       pg.push();
       pg.translate(hx, hy);
@@ -157,8 +159,23 @@ class Reed {
         pg.endShape();
       }
     }
-
+    this.displayWater(pg);
     pg.pop();
+  }
+
+  displayWater(pg) {
+    const stemW = 80;
+    const waterRise = pg.map(pg.sin(frameCount * 0.05 + this.x), -1, 1, 0, 10);
+    pg.noStroke();
+    pg.fill(0);
+    pg.rectMode(pg.CORNERS);
+    pg.rect(
+      this.x - stemW / 2 - 1,
+      this.baseY - waterRise - 20,
+      this.x + stemW / 2 + 1,
+      this.baseY * 2 + 10,
+    );
+    pg.rectMode(pg.CORNER);
   }
 }
 
@@ -173,7 +190,7 @@ function setupPirogueScene(pg) {
 
   randomSeed(7);
 
-  const NUM_ROWS = 5;
+  const NUM_ROWS = 3;
   for (let row = 0; row < NUM_ROWS; row++) {
     const yFrac = map(row, 0, NUM_ROWS - 1, 0.6, 0.88);
     const baseY = H * yFrac;
@@ -183,7 +200,7 @@ function setupPirogueScene(pg) {
     const count = 10;
 
     for (let i = 0; i < count; i++) {
-      const x = random(-30, W + 30);
+      const x = i * 130 + random(-30, 30);
       const reed = new Reed(x, baseY, H);
       if (baseY < midY) {
         pirogueReedsBack.push(reed);
@@ -245,8 +262,8 @@ function _updatePirogue(pg) {
 
 function _drawReeds(pg) {
   pg.push();
-  for (const r of pirogueReedsBack) r.display(pg, pirogueFollowerX);
-  for (const r of pirogueReedsFront) r.display(pg, pirogueFollowerX);
+  for (const r of pirogueReedsBack) r.display(pg, bird.x);
+  for (const r of pirogueReedsFront) r.display(pg, bird.x);
   pg.pop();
 }
 
@@ -269,13 +286,18 @@ function _drawBoatOld(pg) {
 }
 
 function displayPirogueReeds(pg) {
-  pg.background(0);
+  // pg.background(0);
   _updatePirogue(pg);
   _drawReeds(pg);
+  // drawWaterBand(pg.height * 0.65, 0, pg, {
+  //   amp: 18,
+  //   hasOutline: true,
+  //   hasRipples: true,
+  // });
 }
 
 function displayPirogueBoat(pg) {
-  pg.background(0);
+  // pg.background(0);
   _updatePirogue(pg);
   _drawBoat(pg);
 }
@@ -308,8 +330,22 @@ function displayPirogueBottom(pg) {
 }
 
 function displayPirogueScene(pg) {
-  pg.background(0);
+  // pg.background(0);
   _updatePirogue(pg);
+  drawWaterBand(200, 0, pg, {
+    amp: 18,
+    hasOutline: false,
+    hasRipples: false,
+  });
   _drawReeds(pg);
-  displayPirogueBottom(pg);
+
+  const hasPose = poseState.bodies.length > 0;
+  const targetX =
+    mouseMode || !hasPose ? mouseX : poseState.bodies[0].bodyCenter.x;
+  if (_pirogueLastTargetX === null) _pirogueLastTargetX = targetX;
+  const dx = targetX - _pirogueLastTargetX;
+  if (abs(dx) > 2) _pirogueDir = dx > 0 ? 1 : -1;
+  _pirogueLastTargetX = targetX;
+  bird.display(pg, _pirogueDir);
+  bird.update(_pirogueDir);
 }

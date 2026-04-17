@@ -11,8 +11,10 @@ function displayBirdOverlay(pg) {
 function displayFlyingBirdOverlay(pg) {
   // Position bird near bottom; account for outer 4x scale + flyBird.scale (0.5)
   flyBird.y = pg.height - flyBird.getHeight(1) - 50;
+  const hasPose = poseState.bodies.length > 0;
+  const targetX = mouseMode || !hasPose ? mouseX : poseState.bodies[0].bodyCenter.x;
+  const dir = flyBird.updateFollowing(targetX);
   pg.push();
-  flyBird.display(pg);
+  flyBird.display(pg, dir);
   pg.pop();
-  flyBird.update(1);
 }

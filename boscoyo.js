@@ -33,6 +33,7 @@ const poseState = {
 };
 
 let xPosition = 0;
+let starDrift = 0;
 
 // imgs
 let croppedTreeTallImg;
@@ -105,7 +106,7 @@ function resizeImages() {
     bird.imgs[i].resize(0, 400);
   }
   for (let i = 0; i < flyBird.imgs.length; i++) {
-    flyBird.imgs[i].resize(0, 300);
+    flyBird.imgs[i].resize(0, 400);
   }
   for (let i = 0; i < pirogue.imgs.length; i++) {
     pirogue.imgs[i].resize(0, 500);
@@ -286,7 +287,7 @@ function draw() {
 
   // TEST A: comment this block out — does display get fast?
   const activeSceneId = director.scenes[director.activeIndex]?.id;
-  const scenesWithoutStars = ["duckweed", "reeds", "pirogueOnly"];
+  const scenesWithoutStars = ["duckweed"];
   // TEST A1: comment out stars
   const isOverlay = SKETCH_ID === "sketchOverlay";
   const isSplit = SKETCH_ID === "sketchSplit";
@@ -376,13 +377,25 @@ function debugPose(pg = scene2D) {
   pg.text(`bodies: ${poseState.bodies.length}`, 20, 150);
   pg.text(`mlPoses: ${mlPoses.length}`, 20, 180);
   const bc = poseState.bodyCenter;
-  pg.text(`bodyCenter: ${bc ? `${bc.x.toFixed(0)}, ${bc.y.toFixed(0)}` : "null"}`, 20, 210);
+  pg.text(
+    `bodyCenter: ${bc ? `${bc.x.toFixed(0)}, ${bc.y.toFixed(0)}` : "null"}`,
+    20,
+    210,
+  );
   pg.text(`mouseMode: ${mouseMode}`, 20, 240);
   pg.text(`canvas: ${width} x ${height}`, 20, 270);
   if (lastPoseMsg) {
     const rawBc = lastPoseMsg.bodies?.[0]?.bodyCenter;
-    pg.text(`senderSize: ${lastPoseMsg.senderWidth} x ${lastPoseMsg.senderHeight}`, 20, 300);
-    pg.text(`raw bodyCenter: ${rawBc ? `${rawBc.x.toFixed(2)}, ${rawBc.y.toFixed(2)}` : "null"}`, 20, 330);
+    pg.text(
+      `senderSize: ${lastPoseMsg.senderWidth} x ${lastPoseMsg.senderHeight}`,
+      20,
+      300,
+    );
+    pg.text(
+      `raw bodyCenter: ${rawBc ? `${rawBc.x.toFixed(2)}, ${rawBc.y.toFixed(2)}` : "null"}`,
+      20,
+      330,
+    );
   }
   if (!poseState.active) {
     pg.pop();
@@ -429,10 +442,11 @@ function createLayeredStars(scene) {
 
 function drawStars(pg) {
   const t = millis() / 1000;
+  starDrift += 0.3; // slow continuous drift across all scenes
   pg.noStroke();
   for (let s of stars) {
     s.update(t);
-    s.display(xPosition);
+    s.display(xPosition + starDrift);
   }
 }
 
@@ -581,7 +595,8 @@ function keyPressed() {
       break;
     case "c":
       pMapper.toggleCalibration();
-      if (pMapper.calibrate) cursor(); else noCursor();
+      if (pMapper.calibrate) cursor();
+      else noCursor();
       break;
     case "f":
       let fs = fullscreen();
@@ -955,8 +970,7 @@ function getIsAutoMove() {
   const hasPose = poseState.bodies.length > 0;
   if (hasPose) lastPoseTime = millis();
 
-  const autoMode =
-    !mouseMode && millis() - lastPoseTime > AUTO_TIMEOUT;
+  const autoMode = !mouseMode && millis() - lastPoseTime > AUTO_TIMEOUT;
   return autoMode;
 }
 

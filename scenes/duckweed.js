@@ -8,9 +8,10 @@ class DuckweedParticle {
     this.oy = y;
     this.vx = 0;
     this.vy = 0;
-    this.rot = random(this.TWO_PI);
+    this.rot = random(TWO_PI);
     this.sc = random(0.2, 0.5);
     this.imgId = floor(random(duckweedImgs.length));
+    this.img = null; // set after construction in setupDuckweed
   }
 
   update(repellers) {
@@ -46,6 +47,12 @@ class DuckweedParticle {
   }
 }
 
+function getColor() {
+  const colors = [color(127, 141, 127), color(255)];
+  const col = lerpColor(colors[0], colors[1], random(0, 1));
+  return color(red(col), green(col), blue(col), 255);
+}
+
 function setupDuckweed() {
   duckweedParticles.length = 0;
   const cols = 35;
@@ -56,7 +63,18 @@ function setupDuckweed() {
     for (let j = 0; j < rows; j++) {
       const x = (i + 0.5) * sx + random(-sx * 0.45, sx * 0.45);
       const y = (j + 0.5) * sy + random(-sy * 0.45, sy * 0.45);
-      duckweedParticles.push(new DuckweedParticle(x, y));
+      const p = new DuckweedParticle(x, y);
+      const src = duckweedImgs[p.imgId];
+      const t = random(1);
+      const col = getColor();
+      const r = red(col);
+      const g = green(col);
+      const b = blue(col);
+      const g2 = createGraphics(src.width, src.height);
+      g2.tint(r, g, b);
+      g2.image(src, 0, 0);
+      p.img = g2;
+      duckweedParticles.push(p);
     }
   }
 }
@@ -84,20 +102,19 @@ function displayDuckweedParticles(pg = scene2D) {
 
   // Repel particles from gator body
   const rc = gator.x !== null ? gator.repelCenter() : { x: mouseX, y: mouseY };
-  const repellers = [{ x: rc.x, y: rc.y, radius: 500, strength: 2 }];
+  const repellers = [{ x: rc.x, y: rc.y, radius: 500, strength: 3 }];
 
   for (const p of duckweedParticles) {
     p.update(repellers);
   }
 
-  pg.fill(52, 120, 48);
   pg.noStroke();
   for (const p of duckweedParticles) {
     pg.push();
     pg.translate(p.x, p.y);
     pg.rotate(p.rot);
     pg.scale(p.sc);
-    pg.image(duckweedImgs[p.imgId], 0, 0);
+    pg.image(p.img, 0, 0);
     pg.pop();
   }
 }
@@ -120,14 +137,13 @@ function displayDuckweedSplit(pg = scene2D) {
   const repellers = [{ x: rc.x, y: rc.y, radius: 500, strength: 2 }];
   for (const p of duckweedParticles) p.update(repellers);
 
-  pg.fill(52, 120, 48);
   pg.noStroke();
   for (const p of duckweedParticles) {
     pg.push();
     pg.translate(p.x, p.y);
     pg.rotate(p.rot);
     pg.scale(p.sc);
-    pg.image(duckweedImgs[p.imgId], 0, 0);
+    pg.image(p.img, 0, 0);
     pg.pop();
   }
 

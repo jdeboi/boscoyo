@@ -39,35 +39,50 @@ const sceneCoordinator = [
     sketch1Only: { draw: (pg) => displayDuckweed(pg) },
   },
   {
-    id: "birdTree",
+    id: "flyingBird",
     durationSeconds: DURATION,
-    sketch1: { draw: (pg) => displayBigTree(pg) },
-    sketch2: { draw: (pg) => displayBigTree(pg) },
-    sketchOverlay: {
-      draw: (pg) => displayBirdOverlay(pg),
-      onEnter: (pg) => {
-        bird.x = 0;
-        bird.scale = 1;
-        bird.setHeightFromBottom(50, pg);
-      },
-    },
-    sketchSplit: {
-      draw: (pg) => displayBirdSplit(pg),
-      onEnter: (pg) => {
-        bird.x = 0;
-        bird.scale = 1;
-        bird.setHeightFromBottom(50, pg);
-      },
-    },
+    sketch1: { draw: (pg) => displayTreeTop(pg) },
+    sketch2: { draw: (pg) => displayTreeTop(pg) },
+    sketchOverlay: { draw: (pg) => displayFlyingBirdOverlay(pg) },
+    sketchSplit: { draw: (pg) => displayFlyingSplit(pg) },
     sketch1Only: {
-      draw: (pg) => displayBirdBigTree(pg),
+      draw: (pg) => displayTreeTopFlying(pg),
       onEnter: (pg) => {
-        bird.x = 0;
-        bird.scale = 0.8;
-        bird.setHeightFromBottom(0, pg);
+        flyBird.x = -100;
+        flyBird.y = pg.height / 2;
       },
     },
   },
+  // {
+  //   id: "birdTree",
+  //   durationSeconds: DURATION,
+  //   sketch1: { draw: (pg) => displayBigTree(pg) },
+  //   sketch2: { draw: (pg) => displayBigTree(pg) },
+  //   sketchOverlay: {
+  //     draw: (pg) => displayBirdOverlay(pg),
+  //     onEnter: (pg) => {
+  //       bird.x = 0;
+  //       bird.scale = 1;
+  //       bird.setHeightFromBottom(50, pg);
+  //     },
+  //   },
+  //   sketchSplit: {
+  //     draw: (pg) => displayBirdSplit(pg),
+  //     onEnter: (pg) => {
+  //       bird.x = 0;
+  //       bird.scale = 1;
+  //       bird.setHeightFromBottom(50, pg);
+  //     },
+  //   },
+  //   sketch1Only: {
+  //     draw: (pg) => displayBirdBigTree(pg),
+  //     onEnter: (pg) => {
+  //       bird.x = 0;
+  //       bird.scale = 0.8;
+  //       bird.setHeightFromBottom(0, pg);
+  //     },
+  //   },
+  // },
   {
     id: "treeBase",
     durationSeconds: DURATION,
@@ -111,42 +126,25 @@ const sceneCoordinator = [
   },
 
   {
-    id: "flyingBird",
-    durationSeconds: DURATION,
-    sketch1: { draw: (pg) => displayTreeTop(pg) },
-    sketch2: { draw: (pg) => displayTreeTop(pg) },
-    sketchOverlay: { draw: (pg) => displayFlyingBirdOverlay(pg) },
-    sketchSplit: { draw: (pg) => displayFlyingSplit(pg) },
-    sketch1Only: {
-      draw: (pg) => displayTreeTopFlying(pg),
-      onEnter: (pg) => {
-        flyBird.x = pg.width - 500;
-        flyBird.y = pg.height / 2;
-      },
-    },
-  },
-  {
     id: "reeds",
     durationSeconds: DURATION,
     sketch1: { draw: displayPirogueReeds },
     sketch2: null,
-    sketchOverlay: {
-      draw: (pg) => displayPirogueBottom(pg),
-      onEnter: (pg) => {
-        pirogue.setHeightFromBottom(0, pg);
-        pirogue.x = 0;
-        pirogue.scale = 1;
-      },
-    },
+    sketchOverlay: null,
     sketchSplit: { draw: (pg) => displayTreesSplit(pg) },
     sketch1Only: {
       draw: (pg) => {
         displayPirogueScene(pg);
       },
+      // onEnter: (pg) => {
+      //   pirogue.setHeightFromBottom(0, pg);
+      //   pirogue.x = 0;
+      //   pirogue.scale = 1;
+      // },
       onEnter: (pg) => {
-        pirogue.setHeightFromBottom(0, pg);
-        pirogue.x = 0;
-        pirogue.scale = 1;
+        bird.x = 0;
+        bird.scale = 1;
+        bird.setHeightFromBottom(30, pg);
       },
     },
   },

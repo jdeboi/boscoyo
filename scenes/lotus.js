@@ -100,24 +100,24 @@ function setupLotus() {
   // x, z: 0–100 logical space; z=0 far back, z=100 close front
   //       z < 33 → layer 0 (behind pads), 33–66 → layer 1, 67+ → layer 2
   const flowerDefs = [
-    { type: "lotus", x: 100, z: 1, timeOffset: -370, stemLen: 40 },
     {
       type: "lotus",
-      x: 50,
+      x: 30,
       z: 100,
       timeOffset: -17000,
       isFlipped: true,
-      stemLen: 80,
+      stemLen: 90,
     },
-    { type: "pod", x: 1, z: 5, timeOffset: -4200, isFlipped: true },
+    { type: "pod", x: 55, z: 20, timeOffset: -4200, isFlipped: true },
     {
-      type: "pod",
-      x: 85,
+      type: "lotus",
+      x: 75,
       z: 50,
       timeOffset: 2000,
       isFlipped: false,
       stemLen: 30,
     },
+    { type: "pod", x: 100, z: 30, timeOffset: -370, stemLen: 40 },
   ];
 
   for (const {
@@ -154,14 +154,14 @@ function setupLotus() {
     { index: 0, x: 60, z: 50, isFlipped: true },
     { index: 3, x: 90, z: 30 },
 
-    { index: 1, x: 0, z: 0, isFlipped: true },
+    // { index: 1, x: 0, z: 0, isFlipped: true },
 
-    { index: 3, x: 10, z: 20 },
-    { index: 0, x: 30, z: 0 },
-    { index: 4, x: 50, z: 10 },
-    { index: 1, x: 65, z: 2 },
-    { index: 2, x: 80, z: 10 },
-    { index: 0, x: 100, z: 0 },
+    // { index: 3, x: 10, z: 20 },
+    // { index: 0, x: 30, z: 0 },
+    // { index: 4, x: 50, z: 10 },
+    // { index: 1, x: 65, z: 2 },
+    // { index: 2, x: 80, z: 10 },
+    // { index: 0, x: 100, z: 0 },
   ];
 
   for (let i = 0; i < lillyPadDefs.length; i++) {
@@ -222,7 +222,7 @@ function displayLotusSplit(pg = scene2D) {
   lotusWind = pg.lerp(lotusWind, windTarget, 0.05);
 
   pg.background(0);
-  // drawWaterBand(300, 0, pg);
+  drawWaterBand(300, 0, pg);
 
   for (const p of lotusPads) {
     p.display(pg);
@@ -240,7 +240,7 @@ function displayLotusOverlay(pg = scene2D) {
   lotusWind = pg.lerp(lotusWind, windTarget, 0.05);
 
   pg.background(0);
-  // drawWaterBand(300, 0, pg);
+  drawWaterBand(300, 0, pg);
   for (const p of lotusOverlayPads) {
     p.display(pg);
     p.update();
@@ -266,11 +266,11 @@ function displayLotusNoFront(pg = scene2D) {
   const windTarget = pg.map(ix, 0, pg.width, -0.2, 0.2);
   lotusWind = pg.lerp(lotusWind, windTarget, 0.05);
 
-  pg.push();
-  fullBaldTree.display(100, -100, 0.6);
-  pg.pop();
+  // pg.push();
+  // fullBaldTree.display(100, -100, 0.6);
+  // pg.pop();
 
-  // drawWaterBand(300, 0, pg);
+  drawWaterBand(400, 0, pg);
 
   const tick = (arr) => {
     for (const p of arr) {
@@ -503,8 +503,14 @@ class LotusFlower extends Plant {
     }
     this.pg.pop();
 
-    // Water mask: rectangle anchored below the stem base, top edge rises/falls.
-    // Bottom is fixed so it never pushes down onto other images.
+    this.displayWater();
+    this.pg.pop();
+  }
+
+  displayWater() {
+    const STEM_H = this._stemH;
+    const { STEM_CX } = LotusFlower;
+
     const waterRise = this.pg.map(
       this.pg.sin(frameCount * 0.05 + this.displayX),
       -1,
@@ -523,8 +529,6 @@ class LotusFlower extends Plant {
       STEM_H + 10,
     );
     this.pg.rectMode(this.pg.CORNER);
-
-    this.pg.pop();
   }
 
   update() {
