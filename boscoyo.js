@@ -51,14 +51,15 @@ let stars = [];
 let pMapper;
 let moveForward = false;
 let shouldInvert = false;
-let debugMode = !demoMode;
-let showFPS = false;
-let previewMode = true;
-let invertPoseX = true; // mirror pose X coords; toggle with 'x'
 
 // --- sync ---
 const _syncParams = new URLSearchParams(location.search);
 const demoMode = _syncParams.get("demo") === "1"; // standalone/GitHub Pages mode: no camera, no WS, no debug
+
+let debugMode = !demoMode;
+let showFPS = false;
+let previewMode = true;
+let invertPoseX = true; // mirror pose X coords; toggle with 'x'
 const syncRole = _syncParams.get("role"); // "leader" | "follower"
 const _syncHost = _syncParams.get("sync"); // optional leader IP for offline-local-server mode
 // pose=local  → use own camera, ignore network pose
