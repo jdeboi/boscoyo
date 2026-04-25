@@ -51,23 +51,24 @@ let stars = [];
 let pMapper;
 let moveForward = false;
 let shouldInvert = false;
-let debugMode = true;
+let debugMode = !demoMode;
 let showFPS = false;
 let previewMode = true;
 let invertPoseX = true; // mirror pose X coords; toggle with 'x'
 
 // --- sync ---
 const _syncParams = new URLSearchParams(location.search);
+const demoMode = _syncParams.get("demo") === "1"; // standalone/GitHub Pages mode: no camera, no WS, no debug
 const syncRole = _syncParams.get("role"); // "leader" | "follower"
 const _syncHost = _syncParams.get("sync"); // optional leader IP for offline-local-server mode
 // pose=local  → use own camera, ignore network pose
 // pose=network → no local camera, accept pose from /pose computer or leader
 // (no param)   → default: mouse mode until camera started manually
 const _poseParam = _syncParams.get("pose"); // "local" | "network"
-const cameraAllowed = _poseParam !== "network"; // false when pose=network
+const cameraAllowed = !demoMode && _poseParam !== "network"; // false when pose=network or demo mode
 let localPoseEnabled = _poseParam === "local"; // true when pose=local: block incoming pose
 const alwaysAuto = _syncParams.get("alwaysAuto") === "1"; // force auto mode permanently (no pose needed)
-let mouseMode = cameraAllowed; // false when pose=network; toggle with 'm'
+let mouseMode = demoMode || cameraAllowed; // false when pose=network; toggle with 'm'
 const SYNC_SERVER_URL = _syncHost
   ? `ws://${_syncHost}:8080`
   : `ws://${location.host}`;
@@ -81,10 +82,12 @@ const POSE_SYNC_INTERVAL_MS = 50; // send pose at 20fps max
 const trees = [];
 
 function preload() {
-  bodyPose = ml5.bodyPose("MoveNet", {
-    flipped: true,
-    modelType: "MULTIPOSE_LIGHTNING",
-  });
+  if (!demoMode) {
+    bodyPose = ml5.bodyPose("MoveNet", {
+      flipped: true,
+      modelType: "MULTIPOSE_LIGHTNING",
+    });
+  }
   gatorHeadImg = loadImage("./assets/gator/head2.png");
   gatorBackImg = loadImage("./assets/gator/back4.png");
   loadLotusImgs();
@@ -200,6 +203,7 @@ async function initPoseSystem() {
 }
 
 function stopPoseSystem() {
+  if (!bodyPose) return;
   bodyPose.detectStop();
   if (mlVideo) {
     mlVideo.srcObject = null; // release frame pipeline
@@ -229,10 +233,7 @@ function setup() {
   pixelDensity(1);
   resizeImages();
 
-  let cW = windowWidth;
-  let cH = windowHeight;
-
-  const c = createCanvas(1280, 800, WEBGL);
+  const c = createCanvas(windowWidth, windowHeight, WEBGL);
   scene2D = createGraphics(c.width, c.height);
   scene2D.pixelDensity(1);
 
@@ -866,7 +867,7 @@ function setStatus(msg) {
 }
 
 function initSync() {
-  if (!syncRole) return;
+  if (demoMode || !syncRole) return;
 
   function connect() {
     syncSocket = new WebSocket(SYNC_SERVER_URL);
@@ -899,7 +900,11 @@ function initSync() {
 
       // Pose: apply on both leader and follower (leader gets pose from /pose computer)
       // Followers always accept synced pose regardless of local mouseMode
-      if (msg.type === "pose" && !localPoseEnabled && (!mouseMode || syncRole === "follower")) {
+      if (
+        msg.type === "pose" &&
+        !localPoseEnabled &&
+        (!mouseMode || syncRole === "follower")
+      ) {
         lastPoseMsg = msg;
         const sx = msg.senderWidth ? width / msg.senderWidth : 1;
         const sy = msg.senderHeight ? height / msg.senderHeight : 1;
